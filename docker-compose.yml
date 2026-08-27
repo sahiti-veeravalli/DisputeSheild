@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: disputeshield-postgres
+    environment:
+      POSTGRES_DB: disputeshield
+      POSTGRES_USER: disputeshield
+      POSTGRES_PASSWORD: disputeshield_secret
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U disputeshield -d disputeshield"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: disputeshield-backend
+    environment:
+      SPRING_PROFILES_ACTIVE: docker
+      SPRING_DATASOURCE_URL: jdbc:postgresql://postgres:5432/disputeshield
+      SPRING_DATASOURCE_USERNAME: disputeshield
+      SPRING_DATASOURCE_PASSWORD: disputeshield_secret
+      DISPUTESHIELD_API_KEY: disputeshield-demo-key-2026
+      DISPUTESHIELD_CORS_ORIGINS: http://localhost,http://localhost:80,http://localhost:3000,http://localhost:5173
+    ports:
+      - "8080:8080"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: disputeshield-frontend
+    ports:
+      - "80:80"
+      - "3000:80"
+    depends_on:
+      - backend
+    restart: unless-stopped
+
+volumes:
+  postgres_data:
