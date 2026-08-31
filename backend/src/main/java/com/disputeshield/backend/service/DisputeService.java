@@ -6,8 +6,12 @@ import com.disputeshield.backend.domain.DisputeStatus;
 import com.disputeshield.backend.dto.AnalysisResultDto;
 import com.disputeshield.backend.dto.AuditEntryDto;
 import com.disputeshield.backend.dto.DisputeDto;
+import com.disputeshield.backend.dto.FoundEvidenceItemDto;
+import com.disputeshield.backend.dto.MissingEvidenceItemDto;
 import com.disputeshield.backend.engine.DisputeFeatures;
+import com.disputeshield.backend.engine.EvidenceRules;
 import com.disputeshield.backend.engine.RuleEngine;
+import com.disputeshield.backend.evaluation.EvaluationService;
 import com.disputeshield.backend.exception.DisputeConflictException;
 import com.disputeshield.backend.exception.DisputeNotFoundException;
 import com.disputeshield.backend.exception.InvalidDisputeStateException;
@@ -19,14 +23,14 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 
 /**
- * Backs every /api/disputes endpoint. Mirrors the original frontend's App.tsx state
- * machine (handleAnalyzeStart/handleAnalyzeComplete/handleGeneratePacket/
- * handleApprovePacket/handleSubmitPacket) exactly, just persisted instead of held in
- * React state.
+ * Backs every /api/disputes endpoint. Integrates the deterministic RuleEngine with
+ * the trained Logistic Regression Evidence Sufficiency model for live dispute analysis,
+ * ensuring the backend is the single source of truth for all dispute state and ML inference.
  */
 @Service
 public class DisputeService {
@@ -41,15 +45,24 @@ public class DisputeService {
     private static final String LABEL_MERCHANT_APPROVED = "Merchant approved";
     private static final String LABEL_RESPONSE_SUBMITTED = "Response submitted";
 
+    private static final String DISCLAIMER_TEXT =
+            "Evidence Sufficiency Probability is an AI decision-support estimate of defense documentation strength "
+            + "based on historical chargeback patterns. It is an internal decision-support metric and does not guarantee "
+            + "dispute outcomes by issuing banks or card networks.";
+
     private final DisputeRepository disputeRepository;
     private final AuditEntryRepository auditEntryRepository;
     private final RuleEngine ruleEngine;
+    private final EvaluationService evaluationService;
 
-    public DisputeService(DisputeRepository disputeRepository, AuditEntryRepository auditEntryRepository,
-                           RuleEngine ruleEngine) {
+    public DisputeService(DisputeRepository disputeRepository,
+                          AuditEntryRepository auditEntryRepository,
+                          RuleEngine ruleEngine,
+                          EvaluationService evaluationService) {
         this.disputeRepository = disputeRepository;
         this.auditEntryRepository = auditEntryRepository;
         this.ruleEngine = ruleEngine;
+        this.evaluationService = evaluationService;
     }
 
     private static String nowStamp() {
@@ -84,10 +97,12 @@ public class DisputeService {
     }
 
     /**
-     * Mirrors handleAnalyzeStart + handleAnalyzeComplete from App.tsx: flips status to
-     * Investigating, runs the deterministic rule engine, persists the result, and appends
-     * the same sequence of audit entries the frontend does (only appending "Evidence gaps
-     * detected" when the analysis actually found a gap).
+     * Executes the live dispute analysis pipeline:
+     *  1. Runs the deterministic RuleEngine to identify on-file and missing evidence.
+     *  2. Extracts standardized evidence feature vector.
+     *  3. Passes features to the trained Logistic Regression model to compute Evidence Sufficiency Probability.
+     *  4. Generates positive factors, missing critical evidence factors, and decision-support disclaimer.
+     *  5. Persists the combined explainable assessment and appends audit trail entries.
      */
     @Transactional
     public AnalysisResultDto analyze(String id) {
@@ -96,19 +111,63 @@ public class DisputeService {
         dispute.setStatus(DisputeStatus.INVESTIGATING);
         appendAudit(id, LABEL_ANALYSIS_STARTED);
 
-        DisputeFeatures features = new DisputeFeatures(dispute.getId(), dispute.getReason(),
-                dispute.getAmount(), dispute.getMissingKeys());
-        AnalysisResultDto result = ruleEngine.analyze(features);
+        DisputeFeatures features = new DisputeFeatures(
+                dispute.getId(),
+                dispute.getReason(),
+                dispute.getAmount(),
+                dispute.getMissingKeys()
+        );
+        AnalysisResultDto ruleAnalysis = ruleEngine.analyze(features);
 
-        dispute.setAnalysis(result);
+        int totalRuleCount = EvidenceRules.RULES.get(dispute.getReason()).size();
+        double rawProb = evaluationService.predictSufficiency(
+                ruleAnalysis.completeness(),
+                ruleAnalysis.evidenceCountFound(),
+                totalRuleCount,
+                ruleAnalysis.missingCriticalCount()
+        );
+        double sufficiencyProb = Math.round(rawProb * 1000.0) / 1000.0;
+
+        List<String> topPositiveFactors = new ArrayList<>();
+        topPositiveFactors.add(String.format("Evidence completeness of %d%% (%s readiness tier)",
+                ruleAnalysis.completeness(), ruleAnalysis.readiness()));
+        topPositiveFactors.add(String.format("Retrieved %d of %d applicable defense evidence items",
+                ruleAnalysis.evidenceCountFound(), totalRuleCount));
+        for (FoundEvidenceItemDto f : ruleAnalysis.found().stream().limit(2).toList()) {
+            topPositiveFactors.add(String.format("Verified %s (%d%% relevance, %s strength)",
+                    f.name(), f.relevance(), f.strength().name().toLowerCase()));
+        }
+
+        List<String> missingCriticalFactors = new ArrayList<>();
+        for (MissingEvidenceItemDto m : ruleAnalysis.missing()) {
+            if (m.critical()) {
+                missingCriticalFactors.add(String.format("%s: %s", m.name(), m.why()));
+            }
+        }
+
+        AnalysisResultDto combinedResult = new AnalysisResultDto(
+                ruleAnalysis.found(),
+                ruleAnalysis.missing(),
+                ruleAnalysis.completeness(),
+                ruleAnalysis.readiness(),
+                ruleAnalysis.summary(),
+                ruleAnalysis.evidenceCountFound(),
+                ruleAnalysis.missingCriticalCount(),
+                sufficiencyProb,
+                topPositiveFactors,
+                missingCriticalFactors,
+                DISCLAIMER_TEXT
+        );
+
+        dispute.setAnalysis(combinedResult);
         disputeRepository.save(dispute);
 
         appendAudit(id, LABEL_EVIDENCE_RETRIEVED);
-        if (!result.missing().isEmpty()) {
+        if (!combinedResult.missing().isEmpty()) {
             appendAudit(id, LABEL_EVIDENCE_GAPS);
         }
 
-        return result;
+        return combinedResult;
     }
 
     @Transactional(readOnly = true)
@@ -121,8 +180,7 @@ public class DisputeService {
         return dispute.getAnalysis();
     }
 
-    /** Idempotent: only appends the "Evidence packet generated" audit entry once, mirroring
-     * the frontend's `caseState.audit.some(a => a.label === "...")` guard. */
+    /** Idempotent: only appends the "Evidence packet generated" audit entry once. */
     @Transactional
     public void generatePacket(String id) {
         Dispute dispute = requireDispute(id);

@@ -93,6 +93,10 @@ export interface AnalysisResult {
   summary: string;
   evidenceCountFound: number;
   missingCriticalCount: number;
+  evidenceSufficiencyProbability?: number;
+  topPositiveFactors?: string[];
+  missingCriticalFactors?: string[];
+  decisionSupportDisclaimer?: string;
 }
 
 export interface AuditEntry {
@@ -145,4 +149,3 @@ export interface EvaluationReport {
   methodology: string;
   guardrailNote: string;
 }
-

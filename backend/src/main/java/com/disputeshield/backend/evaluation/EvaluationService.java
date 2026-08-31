@@ -17,9 +17,10 @@ import java.util.List;
  * Owns the synthetic evaluation dataset and the honest, held-out-only metrics report.
  *
  * Sequence, run once at startup (and re-runnable via {@link #recompute()}):
- *  1. Seed the synthetic dataset into Postgres if it isn't already there (idempotent).
+ *  1. Seed the synthetic dataset into Postgres/H2 if it isn't already there (idempotent).
  *  2. Fit {@link LogisticRegressionModel} on the TRAIN split ONLY.
- *  3. Score every TEST-split row, persist its prediction, and cache precision / recall /
+ *  3. Expose the trained model for live dispute analysis in {@link com.disputeshield.backend.service.DisputeService}.
+ *  4. Score every TEST-split row, persist its prediction, and cache precision / recall /
  *     F1 / confusion matrix / false-positive cost / exception list computed EXCLUSIVELY
  *     from the held-out test rows.
  *
@@ -40,6 +41,7 @@ public class EvaluationService {
     private final EvaluationDatasetGenerator generator;
 
     private volatile EvaluationReportDto cachedReport;
+    private volatile LogisticRegressionModel trainedModel;
 
     public EvaluationService(EvaluationDisputeRepository repository, EvaluationDatasetGenerator generator) {
         this.repository = repository;
@@ -61,6 +63,7 @@ public class EvaluationService {
 
         LogisticRegressionModel model = new LogisticRegressionModel();
         model.fit(train);
+        this.trainedModel = model;
 
         int tp = 0, fp = 0, tn = 0, fn = 0;
         long falsePositiveCost = 0;
@@ -102,7 +105,8 @@ public class EvaluationService {
                 "%d synthetic disputes generated from a fixed seed (%d) and split 80/20 into train "
                 + "(%d rows) and held-out test (%d rows). A logistic regression over evidence completeness, "
                 + "evidence-item coverage ratio, and missing-critical-evidence count was fit on the TRAIN "
-                + "split only. Every metric below is computed exclusively on the %d held-out TEST rows the "
+                + "split only. The exact same trained model is deployed in the live dispute pipeline to "
+                + "estimate Evidence Sufficiency Probability. Every metric below is computed exclusively on the %d held-out TEST rows the "
                 + "model never saw during fitting.",
                 train.size() + test.size(), EvaluationDatasetGenerator.SEED, train.size(), test.size(), test.size()
         );
@@ -128,6 +132,17 @@ public class EvaluationService {
     public EvaluationReportDto getReport() {
         EvaluationReportDto r = cachedReport;
         return r != null ? r : recompute();
+    }
+
+    public LogisticRegressionModel getTrainedModel() {
+        if (trainedModel == null) {
+            recompute();
+        }
+        return trainedModel;
+    }
+
+    public double predictSufficiency(int completeness, int evidenceCountFound, int totalRuleCount, int missingCriticalCount) {
+        return getTrainedModel().predictProbability(completeness, evidenceCountFound, totalRuleCount, missingCriticalCount);
     }
 
     private static double round3(double v) {

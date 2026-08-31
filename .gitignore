@@ -1,0 +1,21 @@
+# Build and dependency artifacts
+target/
+backend/target/
+node_modules/
+frontend/node_modules/
+dist/
+frontend/dist/
+
+# IDE and Editor files
+.idea/
+.vscode/
+*.iml
+*.iws
+*.ipr
+.classpath
+.project
+.settings/
+
+# OS metadata
+.DS_Store
+Thumbs.db

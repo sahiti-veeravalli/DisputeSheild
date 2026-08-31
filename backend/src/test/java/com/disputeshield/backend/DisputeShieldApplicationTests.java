@@ -1,11 +1,23 @@
 package com.disputeshield.backend;
 
+import com.disputeshield.backend.domain.DisputeReason;
+import com.disputeshield.backend.domain.EvaluationDispute;
+import com.disputeshield.backend.domain.Outcome;
+import com.disputeshield.backend.domain.ReadinessLevel;
+import com.disputeshield.backend.dto.AnalysisResultDto;
+import com.disputeshield.backend.engine.EvidenceRules;
+import com.disputeshield.backend.evaluation.EvaluationService;
+import com.disputeshield.backend.evaluation.LogisticRegressionModel;
+import com.fasterxml.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.test.web.servlet.MvcResult;
 
+import static org.assertj.core.api.Assertions.assertThat;
+import static org.hamcrest.Matchers.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -21,6 +33,12 @@ class DisputeShieldApplicationTests {
     @Autowired
     private MockMvc mockMvc;
 
+    @Autowired
+    private EvaluationService evaluationService;
+
+    @Autowired
+    private ObjectMapper objectMapper;
+
     @Test
     void contextLoads() {
     }
@@ -34,14 +52,98 @@ class DisputeShieldApplicationTests {
     }
 
     @Test
-    void analyzeReturnsCompletenessScoreAndReadinessLevel() throws Exception {
+    void analyzeReturnsCompletenessScoreAndReadinessLevelAndMLProbability() throws Exception {
         mockMvc.perform(post("/api/disputes/DSP-48291/analyze")
                         .header(API_KEY_HEADER, VALID_API_KEY))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.completeness").value(83))
                 .andExpect(jsonPath("$.readiness").value("MEDIUM"))
                 .andExpect(jsonPath("$.missing.length()").value(1))
-                .andExpect(jsonPath("$.missing[0].key").value("signedProofOfDelivery"));
+                .andExpect(jsonPath("$.missing[0].key").value("signedProofOfDelivery"))
+                .andExpect(jsonPath("$.evidenceSufficiencyProbability").isNumber())
+                .andExpect(jsonPath("$.evidenceSufficiencyProbability").value(greaterThanOrEqualTo(0.0)))
+                .andExpect(jsonPath("$.evidenceSufficiencyProbability").value(lessThanOrEqualTo(1.0)))
+                .andExpect(jsonPath("$.topPositiveFactors").isArray())
+                .andExpect(jsonPath("$.topPositiveFactors.length()").value(greaterThan(0)))
+                .andExpect(jsonPath("$.decisionSupportDisclaimer").isString())
+                .andExpect(jsonPath("$.decisionSupportDisclaimer").value(containsString("Evidence Sufficiency Probability is an AI decision-support estimate")));
+    }
+
+    @Test
+    void mlProbabilityRangeAndOrderingAcrossDisputes() throws Exception {
+        // DSP-48295 has 0 missing keys (complete evidence on file)
+        MvcResult resComplete = mockMvc.perform(post("/api/disputes/DSP-48295/analyze")
+                        .header(API_KEY_HEADER, VALID_API_KEY))
+                .andExpect(status().isOk())
+                .andReturn();
+        AnalysisResultDto dtoComplete = objectMapper.readValue(
+                resComplete.getResponse().getContentAsString(), AnalysisResultDto.class);
+
+        // DSP-48296 has 2 missing critical keys (device and ip consistency)
+        MvcResult resGaps = mockMvc.perform(post("/api/disputes/DSP-48296/analyze")
+                        .header(API_KEY_HEADER, VALID_API_KEY))
+                .andExpect(status().isOk())
+                .andReturn();
+        AnalysisResultDto dtoGaps = objectMapper.readValue(
+                resGaps.getResponse().getContentAsString(), AnalysisResultDto.class);
+
+        assertThat(dtoComplete.evidenceSufficiencyProbability()).isNotNull();
+        assertThat(dtoComplete.evidenceSufficiencyProbability()).isBetween(0.0, 1.0);
+
+        assertThat(dtoGaps.evidenceSufficiencyProbability()).isNotNull();
+        assertThat(dtoGaps.evidenceSufficiencyProbability()).isBetween(0.0, 1.0);
+
+        // A case with complete evidence must have higher sufficiency probability than one with multiple critical gaps
+        assertThat(dtoComplete.evidenceSufficiencyProbability())
+                .isGreaterThan(dtoGaps.evidenceSufficiencyProbability());
+    }
+
+    @Test
+    void mlPredictionIsDeterministicAndReproducible() throws Exception {
+        MvcResult res1 = mockMvc.perform(post("/api/disputes/DSP-48292/analyze")
+                        .header(API_KEY_HEADER, VALID_API_KEY))
+                .andExpect(status().isOk())
+                .andReturn();
+        AnalysisResultDto dto1 = objectMapper.readValue(
+                res1.getResponse().getContentAsString(), AnalysisResultDto.class);
+
+        MvcResult res2 = mockMvc.perform(post("/api/disputes/DSP-48292/analyze")
+                        .header(API_KEY_HEADER, VALID_API_KEY))
+                .andExpect(status().isOk())
+                .andReturn();
+        AnalysisResultDto dto2 = objectMapper.readValue(
+                res2.getResponse().getContentAsString(), AnalysisResultDto.class);
+
+        assertThat(dto1.evidenceSufficiencyProbability())
+                .isEqualTo(dto2.evidenceSufficiencyProbability());
+        assertThat(dto1.completeness()).isEqualTo(dto2.completeness());
+        assertThat(dto1.readiness()).isEqualTo(dto2.readiness());
+    }
+
+    @Test
+    void featureExtractionConsistencyBetweenEvaluationAndLiveAnalysis() {
+        int completeness = 83;
+        int foundCount = 6;
+        int totalRules = EvidenceRules.RULES.get(DisputeReason.PRODUCT_NOT_RECEIVED).size(); // 7
+        int missingCritical = 1;
+
+        double[] liveFeatures = LogisticRegressionModel.extractFeatures(
+                completeness, foundCount, totalRules, missingCritical);
+
+        EvaluationDispute evalRow = new EvaluationDispute(
+                "SYN-TEST", DisputeReason.PRODUCT_NOT_RECEIVED, 4999,
+                completeness, foundCount, totalRules, missingCritical,
+                ReadinessLevel.MEDIUM, Outcome.WON, false
+        );
+        double[] evalFeatures = LogisticRegressionModel.featuresOf(evalRow);
+
+        assertThat(liveFeatures).isEqualTo(evalFeatures);
+
+        double liveScore = evaluationService.predictSufficiency(
+                completeness, foundCount, totalRules, missingCritical);
+        double evalScore = evaluationService.getTrainedModel().predictProbability(evalRow);
+
+        assertThat(liveScore).isEqualTo(evalScore);
     }
 
     @Test
@@ -70,30 +172,28 @@ class DisputeShieldApplicationTests {
 
     @Test
     void duplicateSubmitReturns409() throws Exception {
-        // DSP-48298 is seeded with status RESOLVED and submitted = false initially in seeder?
-        // Let's test analyze -> submit -> second submit on a dispute (e.g. DSP-48295)
-        mockMvc.perform(post("/api/disputes/DSP-48295/analyze")
+        mockMvc.perform(post("/api/disputes/DSP-48293/analyze")
                         .header(API_KEY_HEADER, VALID_API_KEY))
                 .andExpect(status().isOk());
 
-        mockMvc.perform(post("/api/disputes/DSP-48295/packet")
+        mockMvc.perform(post("/api/disputes/DSP-48293/packet")
                         .header(API_KEY_HEADER, VALID_API_KEY))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(post("/api/disputes/DSP-48295/approve")
+        mockMvc.perform(post("/api/disputes/DSP-48293/approve")
                         .header(API_KEY_HEADER, VALID_API_KEY))
                 .andExpect(status().isNoContent());
 
-        mockMvc.perform(post("/api/disputes/DSP-48295/submit")
+        mockMvc.perform(post("/api/disputes/DSP-48293/submit")
                         .header(API_KEY_HEADER, VALID_API_KEY))
                 .andExpect(status().isOk())
-                .andExpect(jsonPath("$.submissionRef").value("RZP-DEMO-DSP-48295"));
+                .andExpect(jsonPath("$.submissionRef").value("RZP-DEMO-DSP-48293"));
 
         // Second submit should fail with 409 Conflict
-        mockMvc.perform(post("/api/disputes/DSP-48295/submit")
+        mockMvc.perform(post("/api/disputes/DSP-48293/submit")
                         .header(API_KEY_HEADER, VALID_API_KEY))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.error").value("Dispute DSP-48295 has already been submitted."));
+                .andExpect(jsonPath("$.error").value("Dispute DSP-48293 has already been submitted."));
     }
 
     @Test
@@ -135,4 +235,3 @@ class DisputeShieldApplicationTests {
                 .andExpect(jsonPath("$.exceptions.length()").value(5));
     }
 }
-

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { ArrowLeft, BarChart3, AlertTriangle, ShieldCheck, RefreshCw } from "lucide-react";
+import { ArrowLeft, BarChart3, AlertTriangle, ShieldCheck, RefreshCw, Cpu } from "lucide-react";
 import { api } from "../api/client";
 import type { EvaluationReport } from "../types";
 import { Card } from "./ui";
@@ -69,7 +69,7 @@ export default function EvaluationPanel({ onBack }: Props) {
           </div>
           <p className="max-w-2xl text-sm text-ink-500">
             Honest benchmark metrics computed strictly on 40 held-out test disputes from fixed seed 42.
-            The evaluation model is fit exclusively on the train split (160 disputes) and evaluated on unseen cases.
+            The exact same Logistic Regression Evidence Sufficiency model evaluated here is deployed in the live product dispute pipeline.
           </p>
         </div>
         <button
@@ -135,6 +135,21 @@ export default function EvaluationPanel({ onBack }: Props) {
             />
           </div>
 
+          {/* Model Deployment Callout */}
+          <Card className="border-signal-blue/30 bg-signal-blueDim/20 p-4">
+            <div className="flex items-start gap-3">
+              <Cpu className="mt-0.5 h-5 w-5 shrink-0 text-signal-blue" />
+              <div>
+                <h4 className="font-display text-sm font-semibold text-ink-100">
+                  Live Model Deployment Integration
+                </h4>
+                <p className="mt-1 text-xs leading-relaxed text-ink-300">
+                  This logistic regression model is actively connected to the live dispute analysis pipeline. During investigation of any dispute, the system extracts evidence completeness, coverage ratio, and missing critical counts, then uses this model to calculate the merchant's <strong>Evidence Sufficiency Probability</strong>.
+                </p>
+              </div>
+            </div>
+          </Card>
+
           {/* Dataset Split & Confusion Matrix */}
           <div className="grid grid-cols-1 gap-6 lg:grid-cols-12">
             {/* Confusion Matrix */}
@@ -152,8 +167,8 @@ export default function EvaluationPanel({ onBack }: Props) {
                     <thead>
                       <tr className="border-b border-navy-600 bg-navy-700/60 text-xs font-medium uppercase text-ink-500">
                         <th className="p-3 text-left">Actual \ Predicted</th>
-                        <th className="p-3 text-signal-green">Pred WON</th>
-                        <th className="p-3 text-signal-red">Pred LOST</th>
+                        <th className="p-3 text-signal-green">Pred SUFFICIENT</th>
+                        <th className="p-3 text-signal-red">Pred INSUFFICIENT</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-navy-600 font-mono">
@@ -249,7 +264,7 @@ export default function EvaluationPanel({ onBack }: Props) {
                     <th className="px-4 py-3">Missing Critical</th>
                     <th className="px-4 py-3">Actual</th>
                     <th className="px-4 py-3">Predicted</th>
-                    <th className="px-4 py-3 font-mono">Win Prob</th>
+                    <th className="px-4 py-3 font-mono">Sufficiency Prob</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-navy-600">

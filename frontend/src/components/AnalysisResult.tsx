@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, AlertTriangle, ShieldAlert } from "lucide-react";
+import { ChevronDown, AlertTriangle, ShieldAlert, Sparkles, CheckCircle2, Bot } from "lucide-react";
 import type { AnalysisResult as AnalysisResultType, EvidenceCategory } from "../types";
 import { Card, RelevanceBar, ReadinessBadge, StrengthPill } from "./ui";
 import { CATEGORY_ICON } from "../utils/constants";
@@ -88,47 +88,133 @@ export function EvidenceFoundPanel({ analysis }: { analysis: AnalysisResultType 
 }
 
 export function AssessmentPanel({ analysis }: { analysis: AnalysisResultType }) {
+  const sufficiencyProb =
+    analysis.evidenceSufficiencyProbability != null
+      ? (analysis.evidenceSufficiencyProbability * 100).toFixed(1)
+      : `${analysis.completeness}.0`;
+
+  const rawProbValue =
+    analysis.evidenceSufficiencyProbability != null
+      ? analysis.evidenceSufficiencyProbability * 100
+      : analysis.completeness;
+
+  const disclaimer =
+    analysis.decisionSupportDisclaimer ||
+    "Evidence Sufficiency Probability is an AI decision-support estimate of defense documentation strength based on historical chargeback patterns. It is an internal decision-support metric and does not guarantee dispute outcomes by issuing banks or card networks.";
+
   return (
     <Card className="p-5">
-      <h3 className="mb-4 font-display text-base font-semibold text-ink-100">AI Defense Assessment</h3>
+      <div className="mb-4 flex items-center justify-between">
+        <h3 className="font-display text-base font-semibold text-ink-100">AI Defense Assessment</h3>
+        <span className="inline-flex items-center gap-1 rounded-md bg-signal-blueDim px-2 py-0.5 font-mono text-[11px] font-medium text-signal-blue border border-signal-blue/25">
+          <Bot className="h-3 w-3" />
+          ML Powered
+        </span>
+      </div>
 
-      <div className="mb-5 flex items-center justify-between rounded-lg border border-navy-600 bg-navy-700/40 p-4">
-        <div>
-          <div className="text-xs text-ink-500">Defense Readiness</div>
-          <div className="mt-1">
-            <ReadinessBadge level={analysis.readiness} />
+      {/* Primary ML Prediction Card */}
+      <div className="mb-5 rounded-lg border border-signal-blue/30 bg-signal-blueDim/20 p-4">
+        <div className="flex items-center justify-between">
+          <div>
+            <div className="text-[11px] font-medium uppercase tracking-wide text-signal-blue">
+              Evidence Sufficiency Probability
+            </div>
+            <div className="mt-1 font-display text-3xl font-bold text-ink-100">
+              {sufficiencyProb}%
+            </div>
+            <div className="mt-0.5 text-xs text-ink-400">
+              Calibrated defense readiness estimate
+            </div>
+          </div>
+          <div className="text-right">
+            <div className="text-[11px] font-medium uppercase tracking-wide text-ink-500">
+              Defense Readiness
+            </div>
+            <div className="mt-1">
+              <ReadinessBadge level={analysis.readiness} />
+            </div>
           </div>
         </div>
-        <div className="text-right">
-          <div className="text-xs text-ink-500">Evidence Completeness</div>
-          <div className="font-display text-2xl font-semibold text-ink-100">{analysis.completeness}%</div>
+
+        <div className="mt-3">
+          <div className="h-2 w-full rounded-full bg-navy-950/60">
+            <div
+              className={`h-2 rounded-full transition-all duration-700 ease-out ${
+                analysis.readiness === "HIGH"
+                  ? "bg-signal-green"
+                  : analysis.readiness === "MEDIUM"
+                  ? "bg-signal-amber"
+                  : "bg-signal-red"
+              }`}
+              style={{ width: `${Math.min(100, Math.max(0, rawProbValue))}%` }}
+            />
+          </div>
         </div>
       </div>
 
-      <div className="mb-5">
-        <RelevanceBar value={analysis.completeness} />
-      </div>
-
+      {/* Metrics Row */}
       <div className="mb-5 grid grid-cols-2 gap-3">
-        <MetricBox label="Evidence Items Found" value={analysis.evidenceCountFound} />
         <MetricBox
-          label="Missing Critical Evidence"
-          value={analysis.missingCriticalCount}
+          label="Rule Engine Completeness"
+          value={`${analysis.completeness}%`}
+          subtitle={`${analysis.evidenceCountFound} items found`}
+        />
+        <MetricBox
+          label="Missing Critical Gaps"
+          value={`${analysis.missingCriticalCount}`}
+          subtitle={analysis.missingCriticalCount === 0 ? "Zero critical gaps" : "Needs attention"}
           warn={analysis.missingCriticalCount > 0}
         />
       </div>
 
-      <div>
-        <div className="mb-1.5 text-[11px] font-medium uppercase tracking-wide text-ink-700">
+      {/* Top Positive Factors */}
+      {analysis.topPositiveFactors && analysis.topPositiveFactors.length > 0 && (
+        <div className="mb-4 rounded-lg border border-navy-600 bg-navy-700/30 p-3.5">
+          <div className="mb-2 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-signal-green">
+            <Sparkles className="h-3.5 w-3.5" />
+            Top Positive Evidence Factors
+          </div>
+          <ul className="space-y-1.5 text-xs text-ink-300">
+            {analysis.topPositiveFactors.map((factor, idx) => (
+              <li key={idx} className="flex items-start gap-2">
+                <CheckCircle2 className="mt-0.5 h-3.5 w-3.5 shrink-0 text-signal-green" />
+                <span>{factor}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Missing Critical Factors if any */}
+      {analysis.missingCriticalFactors && analysis.missingCriticalFactors.length > 0 && (
+        <div className="mb-4 rounded-lg border border-signal-amber/30 bg-signal-amberDim/30 p-3.5">
+          <div className="mb-2 flex items-center gap-1.5 text-[11px] font-medium uppercase tracking-wide text-signal-amber">
+            <AlertTriangle className="h-3.5 w-3.5" />
+            Missing Critical Evidence
+          </div>
+          <ul className="space-y-1.5 text-xs text-ink-200">
+            {analysis.missingCriticalFactors.map((factor, idx) => (
+              <li key={idx} className="flex items-start gap-2">
+                <span className="text-signal-amber">•</span>
+                <span>{factor}</span>
+              </li>
+            ))}
+          </ul>
+        </div>
+      )}
+
+      {/* Assessment Summary */}
+      <div className="mb-4">
+        <div className="mb-1 text-[11px] font-medium uppercase tracking-wide text-ink-700">
           Assessment summary
         </div>
-        <p className="text-sm leading-relaxed text-ink-300">{analysis.summary}</p>
+        <p className="text-xs leading-relaxed text-ink-300">{analysis.summary}</p>
       </div>
 
-      <div className="mt-4 flex items-start gap-2 rounded-lg border border-navy-600 bg-navy-950/40 p-3 text-xs text-ink-500">
-        <ShieldAlert className="mt-0.5 h-3.5 w-3.5 shrink-0 text-signal-blue" />
-        This assessment organizes existing merchant records for human review. It does not predict or
-        guarantee a dispute outcome.
+      {/* Decision Support Guardrail */}
+      <div className="flex items-start gap-2.5 rounded-lg border border-navy-600 bg-navy-950/60 p-3 text-xs leading-relaxed text-ink-400">
+        <ShieldAlert className="mt-0.5 h-4 w-4 shrink-0 text-signal-blue" />
+        <span>{disclaimer}</span>
       </div>
     </Card>
   );
@@ -175,13 +261,24 @@ export function MissingEvidencePanel({ analysis }: { analysis: AnalysisResultTyp
   );
 }
 
-function MetricBox({ label, value, warn = false }: { label: string; value: number; warn?: boolean }) {
+function MetricBox({
+  label,
+  value,
+  subtitle,
+  warn = false,
+}: {
+  label: string;
+  value: string;
+  subtitle?: string;
+  warn?: boolean;
+}) {
   return (
     <div className="rounded-lg border border-navy-600 bg-navy-700/40 p-3">
       <div className={`font-display text-xl font-semibold ${warn ? "text-signal-amber" : "text-ink-100"}`}>
         {value}
       </div>
-      <div className="text-[11px] text-ink-500">{label}</div>
+      <div className="text-[11px] text-ink-400">{label}</div>
+      {subtitle && <div className="mt-0.5 text-[10px] text-ink-600">{subtitle}</div>}
     </div>
   );
 }
