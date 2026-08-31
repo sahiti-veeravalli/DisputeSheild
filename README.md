@@ -1,15 +1,27 @@
+<div align="center">
+
 # DisputeShield AI
+
+### Intelligent Chargeback Defense. Evidence-Ready in Seconds.
+
+[![Build](https://img.shields.io/github/actions/workflow/status/sahiti-veeravalli/DisputeSheild/ci.yml?branch=main&label=Build&style=for-the-badge)](https://github.com/sahiti-veeravalli/DisputeSheild/actions)
+[![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge)](https://www.java.com/)
+[![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=white)](https://react.dev/)
+[![License](https://img.shields.io/github/license/sahiti-veeravalli/DisputeSheild?style=for-the-badge)](https://github.com/sahiti-veeravalli/DisputeSheild/blob/main/LICENSE)
+
+[![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3.4-6DB33F?style=flat-square&logo=springboot)](https://spring.io/projects/spring-boot)
+[![TypeScript](https://img.shields.io/badge/TypeScript-Ready-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
+[![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
+
+<br/>
 
 **From dispute alert to evidence-ready defense — in seconds.**
 
-![Java](https://img.shields.io/badge/Java-21-orange?style=for-the-badge&logo=openjdk)
-![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3.4-brightgreen?style=for-the-badge&logo=springboot)
-![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black)
-![TypeScript](https://img.shields.io/badge/TypeScript-Ready-3178C6?style=for-the-badge&logo=typescript)
-![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker)
-![License](https://img.shields.io/badge/License-MIT-blue?style=for-the-badge)
+</div>
 
 ---
+
+> **DisputeShield AI helps merchants investigate payment chargebacks, identify the strongest available evidence, detect critical gaps, and prepare structured defense packets for human review.**
 
 ## The Problem
 
