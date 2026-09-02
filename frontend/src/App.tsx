@@ -3,12 +3,11 @@ import { Loader2, AlertTriangle, ShieldCheck } from "lucide-react";
 import type { Dispute, DisputeCaseState } from "./types";
 import { api } from "./api/client";
 import LandingPage from "./components/site/LandingPage";
-import Dashboard from "./components/Dashboard";
-import Investigation from "./components/Investigation";
-import EvaluationPanel from "./components/EvaluationPanel";
+import { AppShell } from "./components/layout/AppShell";
+import type { WorkspaceTab } from "./components/layout/Sidebar";
 import { Card } from "./components/ui";
 
-type AppView = "landing" | "dashboard" | "investigation" | "evaluation";
+type AppView = "landing" | "app";
 
 export default function App() {
   const [disputes, setDisputes] = useState<Dispute[]>([]);
@@ -16,18 +15,19 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<WorkspaceTab>("command-center");
   const [view, setView] = useState<AppView>(() => {
     if (typeof window !== "undefined") {
       const hash = window.location.hash;
-      if (hash === "#dashboard") return "dashboard";
-      if (hash === "#evaluation-panel") return "evaluation";
+      if (hash === "#app" || hash === "#dashboard") return "app";
     }
     return "landing";
   });
 
   useEffect(() => {
     let active = true;
-    api.listDisputes()
+    api
+      .listDisputes()
       .then((data) => {
         if (active) {
           setDisputes(data);
@@ -43,6 +43,9 @@ export default function App() {
             };
           }
           setCaseStates(map);
+          if (data.length > 0) {
+            setSelectedId((prev) => prev || data[0].id);
+          }
           setLoading(false);
         }
       })
@@ -75,6 +78,9 @@ export default function App() {
         };
       }
       setCaseStates(map);
+      if (data.length > 0 && !selectedId) {
+        setSelectedId(data[0].id);
+      }
     } catch (err: any) {
       setError(err.message || "Failed to load disputes from backend API.");
     } finally {
@@ -82,9 +88,8 @@ export default function App() {
     }
   }
 
-  async function handleSelect(id: string) {
+  async function handleSelectDispute(id: string) {
     setSelectedId(id);
-    setView("investigation");
     try {
       const audit = await api.getAudit(id);
       setCaseStates((prev) => ({
@@ -112,7 +117,6 @@ export default function App() {
   }
 
   function handleAnalyzeStart(id: string) {
-    // Optimistic status flip
     updateCase(id, (c) => ({ ...c, status: "Investigating" }));
     setDisputes((prev) =>
       prev.map((d) => (d.id === id ? { ...d, status: "Investigating" } : d))
@@ -195,18 +199,18 @@ export default function App() {
     }
   }
 
-  const selectedDispute = selectedId ? disputes.find((d) => d.id === selectedId) ?? null : null;
-
-  // Render Landing Page as the default view
+  // Public Landing Page view
   if (view === "landing") {
     return (
       <LandingPage
         onLaunchDemo={() => {
-          setView("dashboard");
+          setActiveWorkspaceTab("command-center");
+          setView("app");
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
         onViewEvaluation={() => {
-          setView("evaluation");
+          setActiveWorkspaceTab("model");
+          setView("app");
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
       />
@@ -214,39 +218,39 @@ export default function App() {
   }
 
   return (
-    <div className="min-h-screen bg-navy-900 font-body text-ink-100">
+    <div className="min-h-screen bg-navy-950 font-body text-ink-100">
       {loading && (
         <div className="flex min-h-screen flex-col items-center justify-center gap-4 px-6">
-          <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-signal-blueDim text-signal-blue">
-            <ShieldCheck className="h-7 w-7" />
+          <div className="flex size-14 items-center justify-center rounded-2xl bg-signal-blueDim text-signal-blue border border-signal-blue/30 shadow-[0_0_25px_rgba(76,125,255,0.25)]">
+            <ShieldCheck className="size-8" />
           </div>
-          <div className="flex items-center gap-2 font-mono text-sm text-ink-300">
-            <Loader2 className="h-4 w-4 animate-spin text-signal-blue" />
-            Connecting to DisputeShield backend API...
+          <div className="flex items-center gap-2 font-mono text-xs text-ink-300">
+            <Loader2 className="size-4 animate-spin text-signal-blue" />
+            Connecting to DisputeShield AI Live Engine...
           </div>
         </div>
       )}
 
       {error && !loading && (
         <div className="mx-auto max-w-lg px-6 py-20">
-          <Card className="p-8 text-center">
-            <div className="mb-3 inline-flex h-12 w-12 items-center justify-center rounded-full bg-signal-redDim text-signal-red">
-              <AlertTriangle className="h-6 w-6" />
+          <Card className="p-8 text-center border-signal-red/30 bg-navy-900">
+            <div className="mb-3 inline-flex size-12 items-center justify-center rounded-full bg-signal-redDim text-signal-red">
+              <AlertTriangle className="size-6" />
             </div>
             <h3 className="font-display text-lg font-semibold text-ink-100">
-              Unable to connect to API
+              Unable to connect to DisputeShield Backend
             </h3>
-            <p className="mt-1.5 text-xs text-ink-500">{error}</p>
+            <p className="mt-1.5 text-xs text-ink-500 font-mono">{error}</p>
             <div className="mt-5 flex items-center justify-center gap-3">
               <button
                 onClick={() => setView("landing")}
-                className="rounded-lg border border-navy-500 px-4 py-2 text-sm font-medium text-ink-300 transition-colors hover:bg-navy-700"
+                className="rounded-xl border border-navy-500 bg-navy-800 px-4 py-2 text-xs font-semibold text-ink-300 hover:bg-navy-700"
               >
-                Back to Product Page
+                Back to Landing Page
               </button>
               <button
                 onClick={handleRetry}
-                className="inline-flex items-center gap-2 rounded-lg bg-signal-blue px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-signal-blue/90"
+                className="inline-flex items-center gap-2 rounded-xl bg-signal-blue px-4 py-2 text-xs font-semibold text-white hover:bg-signal-blue/90"
               >
                 Retry Connection
               </button>
@@ -255,47 +259,24 @@ export default function App() {
         </div>
       )}
 
-      {!loading && !error && view === "evaluation" && (
-        <EvaluationPanel onBack={() => setView("dashboard")} />
-      )}
-
-      {!loading && !error && view === "investigation" && selectedDispute && (
-        <Investigation
-          dispute={selectedDispute}
-          caseState={
-            caseStates[selectedDispute.id] || {
-              status: selectedDispute.status,
-              packetApproved: false,
-              submitted: false,
-              audit: [],
-            }
-          }
-          onBack={() => {
-            setSelectedId(null);
-            setView("dashboard");
-          }}
-          onAnalyzeStart={() => handleAnalyzeStart(selectedDispute.id)}
-          onAnalyzeComplete={() => handleAnalyzeComplete(selectedDispute.id)}
-          onGeneratePacket={() => handleGeneratePacket(selectedDispute.id)}
-          onApprovePacket={() => handleApprovePacket(selectedDispute.id)}
-          onSubmitPacket={() => handleSubmitPacket(selectedDispute.id)}
-        />
-      )}
-
-      {!loading && !error && view === "dashboard" && (
-        <Dashboard
+      {!loading && !error && (
+        <AppShell
           disputes={disputes}
           caseStates={caseStates}
-          onSelect={handleSelect}
-          onViewEvaluation={() => setView("evaluation")}
+          selectedDisputeId={selectedId}
+          onSelectDispute={handleSelectDispute}
+          onAnalyzeStart={handleAnalyzeStart}
+          onAnalyzeComplete={handleAnalyzeComplete}
+          onGeneratePacket={handleGeneratePacket}
+          onApprovePacket={handleApprovePacket}
+          onSubmitPacket={handleSubmitPacket}
           onBackToLanding={() => {
             setView("landing");
             window.scrollTo({ top: 0, behavior: "smooth" });
           }}
+          initialTab={activeWorkspaceTab}
         />
       )}
     </div>
   );
 }
-
-
