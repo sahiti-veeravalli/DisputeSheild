@@ -2,10 +2,13 @@ import { useEffect, useState } from "react";
 import { Loader2, AlertTriangle, ShieldCheck } from "lucide-react";
 import type { Dispute, DisputeCaseState } from "./types";
 import { api } from "./api/client";
+import LandingPage from "./components/site/LandingPage";
 import Dashboard from "./components/Dashboard";
 import Investigation from "./components/Investigation";
 import EvaluationPanel from "./components/EvaluationPanel";
 import { Card } from "./components/ui";
+
+type AppView = "landing" | "dashboard" | "investigation" | "evaluation";
 
 export default function App() {
   const [disputes, setDisputes] = useState<Dispute[]>([]);
@@ -13,7 +16,14 @@ export default function App() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [showEvaluation, setShowEvaluation] = useState(false);
+  const [view, setView] = useState<AppView>(() => {
+    if (typeof window !== "undefined") {
+      const hash = window.location.hash;
+      if (hash === "#dashboard") return "dashboard";
+      if (hash === "#evaluation-panel") return "evaluation";
+    }
+    return "landing";
+  });
 
   useEffect(() => {
     let active = true;
@@ -74,7 +84,7 @@ export default function App() {
 
   async function handleSelect(id: string) {
     setSelectedId(id);
-    setShowEvaluation(false);
+    setView("investigation");
     try {
       const audit = await api.getAudit(id);
       setCaseStates((prev) => ({
@@ -187,6 +197,22 @@ export default function App() {
 
   const selectedDispute = selectedId ? disputes.find((d) => d.id === selectedId) ?? null : null;
 
+  // Render Landing Page as the default view
+  if (view === "landing") {
+    return (
+      <LandingPage
+        onLaunchDemo={() => {
+          setView("dashboard");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        onViewEvaluation={() => {
+          setView("evaluation");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
+    );
+  }
+
   return (
     <div className="min-h-screen bg-navy-900 font-body text-ink-100">
       {loading && (
@@ -211,21 +237,29 @@ export default function App() {
               Unable to connect to API
             </h3>
             <p className="mt-1.5 text-xs text-ink-500">{error}</p>
-            <button
-              onClick={handleRetry}
-              className="mt-5 inline-flex items-center gap-2 rounded-lg bg-signal-blue px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-signal-blue/90"
-            >
-              Retry Connection
-            </button>
+            <div className="mt-5 flex items-center justify-center gap-3">
+              <button
+                onClick={() => setView("landing")}
+                className="rounded-lg border border-navy-500 px-4 py-2 text-sm font-medium text-ink-300 transition-colors hover:bg-navy-700"
+              >
+                Back to Product Page
+              </button>
+              <button
+                onClick={handleRetry}
+                className="inline-flex items-center gap-2 rounded-lg bg-signal-blue px-4 py-2 text-sm font-medium text-white transition-colors hover:bg-signal-blue/90"
+              >
+                Retry Connection
+              </button>
+            </div>
           </Card>
         </div>
       )}
 
-      {!loading && !error && showEvaluation && (
-        <EvaluationPanel onBack={() => setShowEvaluation(false)} />
+      {!loading && !error && view === "evaluation" && (
+        <EvaluationPanel onBack={() => setView("dashboard")} />
       )}
 
-      {!loading && !error && !showEvaluation && selectedDispute && (
+      {!loading && !error && view === "investigation" && selectedDispute && (
         <Investigation
           dispute={selectedDispute}
           caseState={
@@ -236,7 +270,10 @@ export default function App() {
               audit: [],
             }
           }
-          onBack={() => setSelectedId(null)}
+          onBack={() => {
+            setSelectedId(null);
+            setView("dashboard");
+          }}
           onAnalyzeStart={() => handleAnalyzeStart(selectedDispute.id)}
           onAnalyzeComplete={() => handleAnalyzeComplete(selectedDispute.id)}
           onGeneratePacket={() => handleGeneratePacket(selectedDispute.id)}
@@ -245,15 +282,20 @@ export default function App() {
         />
       )}
 
-      {!loading && !error && !showEvaluation && !selectedDispute && (
+      {!loading && !error && view === "dashboard" && (
         <Dashboard
           disputes={disputes}
           caseStates={caseStates}
           onSelect={handleSelect}
-          onViewEvaluation={() => setShowEvaluation(true)}
+          onViewEvaluation={() => setView("evaluation")}
+          onBackToLanding={() => {
+            setView("landing");
+            window.scrollTo({ top: 0, behavior: "smooth" });
+          }}
         />
       )}
     </div>
   );
 }
+
 

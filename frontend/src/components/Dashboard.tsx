@@ -8,9 +8,10 @@ interface Props {
   caseStates: Record<string, DisputeCaseState>;
   onSelect: (id: string) => void;
   onViewEvaluation: () => void;
+  onBackToLanding?: () => void;
 }
 
-export default function Dashboard({ disputes, caseStates, onSelect, onViewEvaluation }: Props) {
+export default function Dashboard({ disputes, caseStates, onSelect, onViewEvaluation, onBackToLanding }: Props) {
   const newCount = disputes.filter((d) => caseStates[d.id]?.status === "New").length;
   const urgentCount = disputes.filter((d) => d.deadlineDays <= 2).length;
 
@@ -19,27 +20,54 @@ export default function Dashboard({ disputes, caseStates, onSelect, onViewEvalua
       <header className="mb-8 flex flex-wrap items-start justify-between gap-6">
         <div>
           <div className="mb-3 flex items-center gap-2.5">
-            <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-signal-blueDim text-signal-blue">
-              <ShieldCheck className="h-5 w-5" />
-            </div>
-            <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-100">
-              DisputeShield AI
-            </h1>
+            {onBackToLanding ? (
+              <button
+                onClick={onBackToLanding}
+                className="group flex items-center gap-2.5 text-left transition-opacity hover:opacity-80"
+                title="Return to Product Landing Page"
+              >
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-signal-blueDim text-signal-blue shadow-card">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <div>
+                  <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-100">
+                    DisputeShield AI
+                  </h1>
+                </div>
+              </button>
+            ) : (
+              <>
+                <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-signal-blueDim text-signal-blue">
+                  <ShieldCheck className="h-5 w-5" />
+                </div>
+                <h1 className="font-display text-2xl font-semibold tracking-tight text-ink-100">
+                  DisputeShield AI
+                </h1>
+              </>
+            )}
           </div>
           <p className="max-w-xl text-sm text-ink-500">
             From dispute alert to evidence-ready defense — in seconds. Select a case to run an
             automated evidence investigation.
           </p>
         </div>
-        <div className="flex flex-wrap items-center gap-4">
+        <div className="flex flex-wrap items-center gap-3">
+          {onBackToLanding && (
+            <button
+              onClick={onBackToLanding}
+              className="inline-flex items-center gap-1.5 rounded-lg border border-navy-500 bg-navy-800 px-3 py-2 text-xs font-medium text-ink-300 shadow-card transition-colors hover:bg-navy-700 hover:text-white"
+            >
+              ← Product Page
+            </button>
+          )}
           <button
             onClick={onViewEvaluation}
-            className="inline-flex items-center gap-2 rounded-lg border border-navy-500 bg-navy-800 px-3.5 py-2.5 text-xs font-medium text-ink-200 shadow-card transition-colors hover:bg-navy-700 hover:text-white"
+            className="inline-flex items-center gap-2 rounded-lg border border-navy-500 bg-navy-800 px-3.5 py-2 text-xs font-medium text-ink-200 shadow-card transition-colors hover:bg-navy-700 hover:text-white"
           >
             <BarChart3 className="h-4 w-4 text-signal-blue" />
             Held-Out Evaluation
           </button>
-          <div className="hidden shrink-0 gap-4 sm:flex">
+          <div className="hidden shrink-0 gap-3 sm:flex">
             <Stat label="Open disputes" value={newCount} />
             <Stat label="Due in 2 days" value={urgentCount} accent />
           </div>

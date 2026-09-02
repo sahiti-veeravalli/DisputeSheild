@@ -1,7 +1,7 @@
 # Multi-stage build for DisputeShield AI Backend
 
-# Stage 1: Build stage with Maven & Eclipse Temurin JDK 21
-FROM maven:3.9-eclipse-temurin-21 AS build
+# Stage 1: Build stage with Maven & Eclipse Temurin JDK 17
+FROM maven:3.9-eclipse-temurin-17 AS build
 WORKDIR /app
 
 # Copy pom.xml and pre-fetch dependencies for layer caching
@@ -12,8 +12,8 @@ RUN mvn dependency:go-offline -B || true
 COPY src ./src
 RUN mvn clean package -DskipTests -B
 
-# Stage 2: Minimal runtime stage with Eclipse Temurin JRE 21 Alpine
-FROM eclipse-temurin:21-jre-alpine
+# Stage 2: Minimal runtime stage with Eclipse Temurin JRE 17 Alpine
+FROM eclipse-temurin:17-jre-alpine
 WORKDIR /app
 
 # Copy packaged jar from build stage
