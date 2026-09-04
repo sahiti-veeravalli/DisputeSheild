@@ -5,14 +5,19 @@ import com.disputeshield.backend.domain.EvaluationDispute;
 import com.disputeshield.backend.domain.Outcome;
 import com.disputeshield.backend.domain.ReadinessLevel;
 import com.disputeshield.backend.dto.AnalysisResultDto;
+import com.disputeshield.backend.dto.AuthResponseDto;
+import com.disputeshield.backend.dto.LoginRequestDto;
 import com.disputeshield.backend.engine.EvidenceRules;
 import com.disputeshield.backend.evaluation.EvaluationService;
 import com.disputeshield.backend.evaluation.LogisticRegressionModel;
 import com.fasterxml.jackson.databind.ObjectMapper;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.test.web.servlet.MockMvc;
 import org.springframework.test.web.servlet.MvcResult;
 
@@ -27,9 +32,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class DisputeShieldApplicationTests {
 
-    private static final String API_KEY_HEADER = "X-API-Key";
-    private static final String VALID_API_KEY = "disputeshield-demo-key-2026";
-
     @Autowired
     private MockMvc mockMvc;
 
@@ -39,6 +41,20 @@ class DisputeShieldApplicationTests {
     @Autowired
     private ObjectMapper objectMapper;
 
+    private String adminToken;
+
+    @BeforeEach
+    void setUp() throws Exception {
+        LoginRequestDto login = new LoginRequestDto("admin@disputeshield.ai", "Admin@1234");
+        MvcResult res = mockMvc.perform(post("/api/auth/login")
+                        .contentType(MediaType.APPLICATION_JSON)
+                        .content(objectMapper.writeValueAsString(login)))
+                .andExpect(status().isOk())
+                .andReturn();
+        AuthResponseDto auth = objectMapper.readValue(res.getResponse().getContentAsString(), AuthResponseDto.class);
+        adminToken = "Bearer " + auth.token();
+    }
+
     @Test
     void contextLoads() {
     }
@@ -46,7 +62,7 @@ class DisputeShieldApplicationTests {
     @Test
     void listDisputesReturnsAllEightSeededDisputes() throws Exception {
         mockMvc.perform(get("/api/disputes")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.length()").value(8));
     }
@@ -54,7 +70,7 @@ class DisputeShieldApplicationTests {
     @Test
     void analyzeReturnsCompletenessScoreAndReadinessLevelAndMLProbability() throws Exception {
         mockMvc.perform(post("/api/disputes/DSP-48291/analyze")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.completeness").value(83))
                 .andExpect(jsonPath("$.readiness").value("MEDIUM"))
@@ -73,7 +89,7 @@ class DisputeShieldApplicationTests {
     void mlProbabilityRangeAndOrderingAcrossDisputes() throws Exception {
         // DSP-48295 has 0 missing keys (complete evidence on file)
         MvcResult resComplete = mockMvc.perform(post("/api/disputes/DSP-48295/analyze")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isOk())
                 .andReturn();
         AnalysisResultDto dtoComplete = objectMapper.readValue(
@@ -81,7 +97,7 @@ class DisputeShieldApplicationTests {
 
         // DSP-48296 has 2 missing critical keys (device and ip consistency)
         MvcResult resGaps = mockMvc.perform(post("/api/disputes/DSP-48296/analyze")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isOk())
                 .andReturn();
         AnalysisResultDto dtoGaps = objectMapper.readValue(
@@ -101,14 +117,14 @@ class DisputeShieldApplicationTests {
     @Test
     void mlPredictionIsDeterministicAndReproducible() throws Exception {
         MvcResult res1 = mockMvc.perform(post("/api/disputes/DSP-48292/analyze")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isOk())
                 .andReturn();
         AnalysisResultDto dto1 = objectMapper.readValue(
                 res1.getResponse().getContentAsString(), AnalysisResultDto.class);
 
         MvcResult res2 = mockMvc.perform(post("/api/disputes/DSP-48292/analyze")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isOk())
                 .andReturn();
         AnalysisResultDto dto2 = objectMapper.readValue(
@@ -149,7 +165,7 @@ class DisputeShieldApplicationTests {
     @Test
     void unknownDisputeReturns404() throws Exception {
         mockMvc.perform(get("/api/disputes/DSP-NOPE")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isNotFound())
                 .andExpect(jsonPath("$.error").value("No dispute found with id: DSP-NOPE"));
     }
@@ -157,7 +173,7 @@ class DisputeShieldApplicationTests {
     @Test
     void analysisBeforeAnalyzeReturns400() throws Exception {
         mockMvc.perform(get("/api/disputes/DSP-48294/analysis")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").isString());
     }
@@ -165,7 +181,7 @@ class DisputeShieldApplicationTests {
     @Test
     void packetBeforeAnalyzeReturns400() throws Exception {
         mockMvc.perform(post("/api/disputes/DSP-48294/packet")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.error").isString());
     }
@@ -173,25 +189,25 @@ class DisputeShieldApplicationTests {
     @Test
     void duplicateSubmitReturns409() throws Exception {
         mockMvc.perform(post("/api/disputes/DSP-48293/analyze")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isOk());
 
         mockMvc.perform(post("/api/disputes/DSP-48293/packet")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(post("/api/disputes/DSP-48293/approve")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isNoContent());
 
         mockMvc.perform(post("/api/disputes/DSP-48293/submit")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.submissionRef").value("RZP-DEMO-DSP-48293"));
 
         // Second submit should fail with 409 Conflict
         mockMvc.perform(post("/api/disputes/DSP-48293/submit")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isConflict())
                 .andExpect(jsonPath("$.error").value("Dispute DSP-48293 has already been submitted."));
     }
@@ -199,29 +215,29 @@ class DisputeShieldApplicationTests {
     @Test
     void auditTrailIsPopulatedAndOrdered() throws Exception {
         mockMvc.perform(get("/api/disputes/DSP-48291/audit")
-                        .header(API_KEY_HEADER, VALID_API_KEY))
+                        .header(HttpHeaders.AUTHORIZATION, adminToken))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$[0].label").value("Dispute opened"));
     }
 
     @Test
-    void missingApiKeyOnProtectedEndpointReturns401() throws Exception {
+    void missingJwtOnProtectedEndpointReturns401() throws Exception {
         mockMvc.perform(get("/api/disputes"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").isString());
     }
 
     @Test
-    void invalidApiKeyOnProtectedEndpointReturns401() throws Exception {
+    void invalidJwtOnProtectedEndpointReturns401() throws Exception {
         mockMvc.perform(get("/api/disputes")
-                        .header(API_KEY_HEADER, "wrong-key"))
+                        .header(HttpHeaders.AUTHORIZATION, "Bearer invalid-key"))
                 .andExpect(status().isUnauthorized())
                 .andExpect(jsonPath("$.error").isString());
     }
 
     @Test
-    void evaluationReportMatchesTheLoadBearingSeed42NumbersWithoutApiKey() throws Exception {
-        // Public endpoint without X-API-Key
+    void evaluationReportMatchesTheLoadBearingSeed42NumbersWithoutJwt() throws Exception {
+        // Public endpoint without JWT Bearer header
         mockMvc.perform(get("/api/evaluation/report"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.testSize").value(40))
