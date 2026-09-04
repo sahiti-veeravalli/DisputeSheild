@@ -239,12 +239,7 @@ function DisputeShieldApp() {
     return (
       <LandingPage
         onLaunchDemo={() => {
-          if (isAuthenticated) {
-            setActiveWorkspaceTab("command-center");
-            setView("app");
-          } else {
-            setView("login");
-          }
+          setView("login");
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
         onViewEvaluation={() => {

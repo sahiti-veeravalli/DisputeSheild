@@ -64,6 +64,8 @@ export default {
           amberDim: "#2E2711",
           red: "#F87171",
           redDim: "#2E1A1B",
+          purple: "#A855F7",
+          purpleDim: "#2B1B47",
         },
       },
       fontFamily: {
@@ -101,13 +103,19 @@ export default {
           "0%, 100%": { transform: "translate3d(0, 0, 0) scale(1)", opacity: "0.55" },
           "50%": { transform: "translate3d(3%, -4%, 0) scale(1.08)", opacity: "0.8" },
         },
-        flowLine: {
-          "0%": { transform: "translateY(-100%)" },
-          "100%": { transform: "translateY(300%)" },
+        slideInRight: {
+          "0%": { transform: "translateX(100%)" },
+          "100%": { transform: "translateX(0)" },
+        },
+        fadeIn: {
+          "0%": { opacity: "0" },
+          "100%": { opacity: "1" },
         },
       },
       animation: {
         fadeUp: "fadeUp 0.35s ease-out both",
+        fadeIn: "fadeIn 0.2s ease-out both",
+        slideInRight: "slideInRight 0.28s cubic-bezier(0.16, 1, 0.3, 1) both",
         pulseDot: "pulseDot 1.1s ease-in-out infinite",
         rise: "riseIn 0.8s cubic-bezier(0.22, 1, 0.36, 1) both",
         scan: "scan 5.5s linear infinite",
