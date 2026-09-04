@@ -4,6 +4,11 @@ import com.disputeshield.backend.dto.ApiErrorDto;
 import com.disputeshield.backend.exception.DisputeConflictException;
 import com.disputeshield.backend.exception.DisputeNotFoundException;
 import com.disputeshield.backend.exception.InvalidDisputeStateException;
+import com.disputeshield.backend.exception.InvalidCredentialsException;
+import com.disputeshield.backend.exception.UserConflictException;
+import org.springframework.security.access.AccessDeniedException;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.MethodArgumentNotValidException;
@@ -17,9 +22,20 @@ import java.util.NoSuchElementException;
 @ControllerAdvice
 public class GlobalExceptionHandler {
 
-    @ExceptionHandler({DisputeNotFoundException.class, NoSuchElementException.class})
+    @ExceptionHandler({DisputeNotFoundException.class, NoSuchElementException.class, UsernameNotFoundException.class})
     public ResponseEntity<ApiErrorDto> handleNotFound(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.NOT_FOUND).body(new ApiErrorDto(ex.getMessage()));
+    }
+
+    @ExceptionHandler({InvalidCredentialsException.class, BadCredentialsException.class})
+    public ResponseEntity<ApiErrorDto> handleUnauthorized(RuntimeException ex) {
+        return ResponseEntity.status(HttpStatus.UNAUTHORIZED).body(new ApiErrorDto(ex.getMessage()));
+    }
+
+    @ExceptionHandler(AccessDeniedException.class)
+    public ResponseEntity<ApiErrorDto> handleAccessDenied(AccessDeniedException ex) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .body(new ApiErrorDto("Forbidden: You do not have permission to perform this action."));
     }
 
     @ExceptionHandler(InvalidDisputeStateException.class)
@@ -27,8 +43,8 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new ApiErrorDto(ex.getMessage()));
     }
 
-    @ExceptionHandler(DisputeConflictException.class)
-    public ResponseEntity<ApiErrorDto> handleConflict(DisputeConflictException ex) {
+    @ExceptionHandler({DisputeConflictException.class, UserConflictException.class})
+    public ResponseEntity<ApiErrorDto> handleConflict(RuntimeException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(new ApiErrorDto(ex.getMessage()));
     }
 

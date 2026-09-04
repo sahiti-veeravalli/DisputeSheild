@@ -4,34 +4,64 @@ import com.disputeshield.backend.domain.AuditEntryEntity;
 import com.disputeshield.backend.domain.Dispute;
 import com.disputeshield.backend.domain.DisputeReason;
 import com.disputeshield.backend.domain.DisputeStatus;
+import com.disputeshield.backend.domain.Role;
+import com.disputeshield.backend.domain.User;
 import com.disputeshield.backend.repository.AuditEntryRepository;
 import com.disputeshield.backend.repository.DisputeRepository;
+import com.disputeshield.backend.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 import java.time.Instant;
 import java.util.List;
 
 /**
- * Seeds the 8 demo disputes shown in the original frontend (frontend/src/data/disputes.ts,
- * DSP-48291..DSP-48298) plus one "Dispute opened" audit entry per dispute, so the API has
- * real persisted data to serve from a fresh database. Idempotent: only runs when the
- * disputes table is empty, so it's safe to restart the app (or re-deploy) without
- * duplicating rows or throwing on a unique-constraint violation.
+ * Seeds:
+ * 1. The 8 demo disputes shown in the frontend (DSP-48291..DSP-48298) with audit trail.
+ * 2. Deterministic demo accounts with BCrypt passwords for ADMIN, INVESTIGATOR, and REVIEWER.
+ * Idempotent: safe to run repeatedly across restarts.
  */
 @Component
 public class DataSeeder implements CommandLineRunner {
 
     private final DisputeRepository disputeRepository;
     private final AuditEntryRepository auditEntryRepository;
+    private final UserRepository userRepository;
+    private final PasswordEncoder passwordEncoder;
 
-    public DataSeeder(DisputeRepository disputeRepository, AuditEntryRepository auditEntryRepository) {
+    public DataSeeder(
+            DisputeRepository disputeRepository,
+            AuditEntryRepository auditEntryRepository,
+            UserRepository userRepository,
+            PasswordEncoder passwordEncoder) {
         this.disputeRepository = disputeRepository;
         this.auditEntryRepository = auditEntryRepository;
+        this.userRepository = userRepository;
+        this.passwordEncoder = passwordEncoder;
     }
 
     @Override
     public void run(String... args) {
+        seedUsers();
+        seedDisputes();
+    }
+
+    private void seedUsers() {
+        if (userRepository.count() > 0) {
+            return;
+        }
+
+        List<User> demoUsers = List.of(
+                new User("Sarah Connor (Admin)", "admin@disputeshield.ai", passwordEncoder.encode("Admin@1234"), Role.ADMIN),
+                new User("Alex Rivera (Lead Investigator)", "investigator@disputeshield.ai", passwordEncoder.encode("Investigator@1234"), Role.INVESTIGATOR),
+                new User("Elena Rostova (Compliance Reviewer)", "reviewer@disputeshield.ai", passwordEncoder.encode("Reviewer@1234"), Role.REVIEWER)
+        );
+
+        userRepository.saveAll(demoUsers);
+    }
+
+    private void seedDisputes() {
         if (disputeRepository.count() > 0) {
             return;
         }
