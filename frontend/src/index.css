@@ -4,7 +4,9 @@
 @tailwind components;
 @tailwind utilities;
 
-:root {
+:root,
+[data-theme="light"],
+html:not(.dark) {
   --radius: 0.75rem;
 
   /* Light Enterprise Theme (Default :root) */
@@ -75,7 +77,10 @@
   --gradient-panel: linear-gradient(180deg, #FFFFFF, #F8FAFC);
 }
 
-.dark {
+.dark,
+[data-theme="dark"],
+html.dark,
+body.dark {
   /* Dark Operations Theme */
   --background: 8 13 24; /* #080D18 */
   --foreground: 238 241 248; /* #EEF1F8 */

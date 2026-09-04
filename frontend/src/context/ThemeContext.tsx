@@ -20,6 +20,22 @@ function getSystemTheme(): ResolvedTheme {
   return "light";
 }
 
+function applyThemeToDOM(resolved: ResolvedTheme) {
+  if (typeof document === "undefined") return;
+  const root = document.documentElement;
+  if (resolved === "dark") {
+    root.classList.add("dark");
+    root.setAttribute("data-theme", "dark");
+    if (document.body) document.body.classList.add("dark");
+    root.style.colorScheme = "dark";
+  } else {
+    root.classList.remove("dark");
+    root.setAttribute("data-theme", "light");
+    if (document.body) document.body.classList.remove("dark");
+    root.style.colorScheme = "light";
+  }
+}
+
 export function ThemeProvider({ children }: { children: React.ReactNode }) {
   const [theme, setThemeState] = useState<Theme>(() => {
     try {
@@ -34,28 +50,19 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
   });
 
   const [resolvedTheme, setResolvedTheme] = useState<ResolvedTheme>(() => {
-    if (theme === "system") {
-      return getSystemTheme();
-    }
-    return theme;
+    const resolved = theme === "system" ? getSystemTheme() : theme;
+    applyThemeToDOM(resolved);
+    return resolved;
   });
 
   // Apply theme class and data-theme attribute
   useEffect(() => {
-    const root = document.documentElement;
     const mediaQuery = window.matchMedia("(prefers-color-scheme: dark)");
 
     function updateTheme() {
       const resolved = theme === "system" ? (mediaQuery.matches ? "dark" : "light") : theme;
       setResolvedTheme(resolved);
-
-      if (resolved === "dark") {
-        root.classList.add("dark");
-        root.setAttribute("data-theme", "dark");
-      } else {
-        root.classList.remove("dark");
-        root.setAttribute("data-theme", "light");
-      }
+      applyThemeToDOM(resolved);
     }
 
     updateTheme();
@@ -68,6 +75,9 @@ export function ThemeProvider({ children }: { children: React.ReactNode }) {
 
   const setTheme = (newTheme: Theme) => {
     setThemeState(newTheme);
+    const resolved = newTheme === "system" ? getSystemTheme() : newTheme;
+    setResolvedTheme(resolved);
+    applyThemeToDOM(resolved);
     try {
       localStorage.setItem(THEME_STORAGE_KEY, newTheme);
     } catch {
