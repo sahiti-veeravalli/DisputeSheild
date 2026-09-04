@@ -242,7 +242,7 @@ export function Sidebar({
           </p>
           <button
             onClick={() => onSelectTab("disputes")}
-            className="mt-2 text-[11px] font-semibold text-signal-amber underline underline-offset-2 hover:text-white"
+            className="mt-2 text-[11px] font-semibold text-signal-amber underline underline-offset-2 hover:text-ink-100"
           >
             Review priority queue →
           </button>

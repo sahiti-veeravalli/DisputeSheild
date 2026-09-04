@@ -21,6 +21,7 @@ import {
 } from "lucide-react";
 import { useAuth, DEMO_ACCOUNTS } from "../../context/AuthContext";
 import type { UserRole } from "../../types";
+import { ThemeToggle } from "../layout/ThemeToggle";
 import { Card } from "../ui";
 
 interface LoginPageProps {
@@ -92,7 +93,7 @@ export function LoginPage({ onSuccess, onBackToLanding }: LoginPageProps) {
       <div className="pointer-events-none absolute bottom-10 right-1/4 size-[500px] rounded-full bg-cyan/5 blur-[120px]" />
 
       {/* Top Bar Navigation */}
-      <div className="absolute top-6 left-6 md:left-12 z-20">
+      <div className="absolute top-6 inset-x-6 md:inset-x-12 flex items-center justify-between z-20">
         <button
           onClick={onBackToLanding}
           className="inline-flex items-center gap-2 rounded-xl border border-navy-700 bg-navy-900/70 px-3.5 py-2 text-xs font-medium text-ink-300 backdrop-blur-md transition-colors hover:border-navy-600 hover:text-ink-100"
@@ -100,6 +101,7 @@ export function LoginPage({ onSuccess, onBackToLanding }: LoginPageProps) {
           <ArrowLeft className="size-3.5" />
           <span>Back to Product Overview</span>
         </button>
+        <ThemeToggle />
       </div>
 
       <div className="mx-auto w-full max-w-6xl pt-12 pb-6 lg:py-12">

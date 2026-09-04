@@ -8,6 +8,7 @@ import { LoginPage } from "./components/auth/LoginPage";
 import type { WorkspaceTab } from "./components/layout/Sidebar";
 import { Card } from "./components/ui";
 import { AuthProvider, useAuth } from "./context/AuthContext";
+import { ThemeProvider } from "./context/ThemeContext";
 
 type AppView = "landing" | "login" | "app";
 
@@ -334,11 +335,12 @@ function DisputeShieldApp() {
     </div>
   );
 }
-
 export default function App() {
   return (
-    <AuthProvider>
-      <DisputeShieldApp />
-    </AuthProvider>
+    <ThemeProvider>
+      <AuthProvider>
+        <DisputeShieldApp />
+      </AuthProvider>
+    </ThemeProvider>
   );
 }

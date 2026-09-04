@@ -276,7 +276,7 @@ export function InvestigationWorkspace({
           onClick={() => setActiveTab("pipeline")}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition-colors ${
             activeTab === "pipeline"
-              ? "border-signal-blue text-white"
+              ? "border-signal-blue text-signal-blue font-bold"
               : "border-transparent text-ink-400 hover:text-ink-200"
           }`}
         >
@@ -289,7 +289,7 @@ export function InvestigationWorkspace({
           disabled={!hasAnalysis}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition-colors ${
             activeTab === "packet"
-              ? "border-signal-blue text-white"
+              ? "border-signal-blue text-signal-blue font-bold"
               : !hasAnalysis
               ? "border-transparent text-ink-600 cursor-not-allowed"
               : "border-transparent text-ink-400 hover:text-ink-200"
@@ -303,7 +303,7 @@ export function InvestigationWorkspace({
           onClick={() => setActiveTab("audit")}
           className={`flex items-center gap-2 border-b-2 px-4 py-3 text-xs font-semibold transition-colors ${
             activeTab === "audit"
-              ? "border-signal-blue text-white"
+              ? "border-signal-blue text-signal-blue font-bold"
               : "border-transparent text-ink-400 hover:text-ink-200"
           }`}
         >

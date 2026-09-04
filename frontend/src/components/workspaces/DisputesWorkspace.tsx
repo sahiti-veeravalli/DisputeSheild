@@ -75,7 +75,7 @@ export function DisputesWorkspace({
 
         <div className="flex items-center gap-2 font-mono text-xs text-ink-300">
           <span className="rounded-xl border border-navy-600 bg-navy-800 px-3 py-1.5">
-            Showing <strong className="text-white">{filteredDisputes.length}</strong> of{" "}
+            Showing <strong className="text-ink-100 font-bold">{filteredDisputes.length}</strong> of{" "}
             {disputes.length} cases
           </span>
           <span className="rounded-xl border border-signal-amber/30 bg-signal-amberDim/30 px-3 py-1.5 text-signal-amber font-semibold">

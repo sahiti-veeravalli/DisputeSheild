@@ -15,6 +15,21 @@
       content="From dispute alert to evidence-ready defense — in seconds. Automated evidence investigation, ML readiness scoring, and human-in-the-loop dispute response packet compilation."
     />
     <meta property="og:type" content="website" />
+    <script>
+      (function() {
+        try {
+          var saved = localStorage.getItem('disputeshield_theme');
+          var isDark = saved === 'dark' || (!saved || saved === 'system') && window.matchMedia('(prefers-color-scheme: dark)').matches;
+          if (isDark) {
+            document.documentElement.classList.add('dark');
+            document.documentElement.setAttribute('data-theme', 'dark');
+          } else {
+            document.documentElement.classList.remove('dark');
+            document.documentElement.setAttribute('data-theme', 'light');
+          }
+        } catch (e) {}
+      })();
+    </script>
   </head>
   <body>
     <div id="root"></div>

@@ -55,14 +55,14 @@ export default function Dashboard({ disputes, caseStates, onSelect, onViewEvalua
           {onBackToLanding && (
             <button
               onClick={onBackToLanding}
-              className="inline-flex items-center gap-1.5 rounded-lg border border-navy-500 bg-navy-800 px-3 py-2 text-xs font-medium text-ink-300 shadow-card transition-colors hover:bg-navy-700 hover:text-white"
+              className="inline-flex items-center gap-1.5 rounded-lg border border-navy-500 bg-navy-800 px-3 py-2 text-xs font-medium text-ink-300 shadow-card transition-colors hover:bg-navy-700 hover:text-ink-100"
             >
               ← Product Page
             </button>
           )}
           <button
             onClick={onViewEvaluation}
-            className="inline-flex items-center gap-2 rounded-lg border border-navy-500 bg-navy-800 px-3.5 py-2 text-xs font-medium text-ink-200 shadow-card transition-colors hover:bg-navy-700 hover:text-white"
+            className="inline-flex items-center gap-2 rounded-lg border border-navy-500 bg-navy-800 px-3.5 py-2 text-xs font-medium text-ink-200 shadow-card transition-colors hover:bg-navy-700 hover:text-ink-100"
           >
             <BarChart3 className="h-4 w-4 text-signal-blue" />
             Held-Out Evaluation

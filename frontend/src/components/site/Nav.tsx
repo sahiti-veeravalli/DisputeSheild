@@ -3,6 +3,7 @@ import { Menu, ShieldCheck, X, Play } from "lucide-react";
 import { GithubIcon } from "../../lib/icons";
 import { cn } from "../../lib/utils";
 import { SITE } from "../../lib/site";
+import { ThemeToggle } from "../layout/ThemeToggle";
 
 const links = [
   { label: "How It Works", href: "#how-it-works" },
@@ -60,6 +61,7 @@ export function Nav({ onLaunchDemo }: NavProps) {
         </div>
 
         <div className="hidden items-center gap-3 md:flex">
+          <ThemeToggle />
           <a
             href={SITE.githubUrl}
             target="_blank"
@@ -102,6 +104,10 @@ export function Nav({ onLaunchDemo }: NavProps) {
               </a>
             ))}
             <div className="mt-3 flex flex-col gap-2 border-t border-border pt-3">
+              <div className="flex items-center justify-between px-1 py-1">
+                <span className="text-xs text-muted-foreground font-medium">Theme</span>
+                <ThemeToggle />
+              </div>
               <a
                 href={SITE.githubUrl}
                 target="_blank"

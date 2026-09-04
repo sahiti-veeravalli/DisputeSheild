@@ -12,6 +12,7 @@ import { formatINR } from "../../utils/format";
 import type { WorkspaceTab } from "./Sidebar";
 import { useAuth } from "../../context/AuthContext";
 import { RoleDrawer } from "./RoleDrawer";
+import { ThemeToggle } from "./ThemeToggle";
 
 interface HeaderProps {
   currentTab: WorkspaceTab;
@@ -278,10 +279,13 @@ export function Header({
           )}
         </div>
 
+        {/* Theme Toggle (Light · System · Dark) */}
+        <ThemeToggle />
+
         {/* Back to Landing Page CTA */}
         <button
           onClick={onBackToLanding}
-          className="hidden md:inline-flex items-center gap-1.5 rounded-xl border border-navy-600 bg-navy-800 px-3 py-2 text-xs font-medium text-ink-300 transition-colors hover:bg-navy-700 hover:text-white"
+          className="hidden md:inline-flex items-center gap-1.5 rounded-xl border border-navy-600 bg-navy-800 px-3 py-2 text-xs font-medium text-ink-300 transition-colors hover:bg-navy-700 hover:text-ink-100"
         >
           <span>Landing Page</span>
           <ExternalLink className="size-3 text-ink-500" />
