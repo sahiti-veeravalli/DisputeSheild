@@ -11,9 +11,11 @@ import type {
   PlatformSettings,
 } from "../types";
 
+const rawEnvUrl = import.meta.env.VITE_API_BASE_URL;
 const BASE_URL =
-  import.meta.env.VITE_API_BASE_URL ??
-  (import.meta.env.PROD ? "https://disputesheild.onrender.com" : "http://localhost:8080");
+  typeof rawEnvUrl === "string" && rawEnvUrl.trim().length > 0
+    ? rawEnvUrl.trim()
+    : (import.meta.env.PROD ? "https://disputesheild.onrender.com" : "http://localhost:8080");
 const TOKEN_KEY = "disputeshield_jwt_token";
 
 let onUnauthorizedCallback: (() => void) | null = null;
