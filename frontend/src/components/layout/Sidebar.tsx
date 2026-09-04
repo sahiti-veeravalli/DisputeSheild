@@ -13,6 +13,8 @@ import {
 } from "lucide-react";
 import { GithubIcon } from "../../lib/icons";
 import { SITE } from "../../lib/site";
+import { useAuth } from "../../context/AuthContext";
+import type { UserRole } from "../../types";
 
 export type WorkspaceTab =
   | "command-center"
@@ -41,6 +43,7 @@ interface NavItem {
   badge?: number | string;
   badgeColor?: string;
   description: string;
+  allowedRoles: UserRole[];
 }
 
 export function Sidebar({
@@ -52,12 +55,16 @@ export function Sidebar({
   urgentCount,
   onBackToLanding,
 }: SidebarProps) {
-  const navItems: NavItem[] = [
+  const { user } = useAuth();
+  const userRole: UserRole = user?.role || "INVESTIGATOR";
+
+  const allNavItems: NavItem[] = [
     {
       id: "command-center",
       label: "Command Center",
       icon: LayoutDashboard,
       description: "Overview & urgent triage",
+      allowedRoles: ["ADMIN", "INVESTIGATOR", "REVIEWER"],
     },
     {
       id: "disputes",
@@ -66,6 +73,7 @@ export function Sidebar({
       badge: openDisputesCount,
       badgeColor: "bg-signal-blueDim text-signal-blue border border-signal-blue/30",
       description: "Dispute queue & filters",
+      allowedRoles: ["ADMIN", "INVESTIGATOR", "REVIEWER"],
     },
     {
       id: "investigation",
@@ -74,24 +82,28 @@ export function Sidebar({
       badge: "LIVE",
       badgeColor: "bg-cyan/15 text-cyan border border-cyan/30",
       description: "Interactive pipeline & ML scoring",
+      allowedRoles: ["ADMIN", "INVESTIGATOR"],
     },
     {
       id: "evidence",
       label: "Evidence Vault",
       icon: FolderLock,
       description: "Merchant artifacts & gaps",
+      allowedRoles: ["ADMIN", "INVESTIGATOR", "REVIEWER"],
     },
     {
       id: "analytics",
       label: "Analytics & Risk",
       icon: BarChart3,
       description: "Exposure & readiness trends",
+      allowedRoles: ["ADMIN", "INVESTIGATOR", "REVIEWER"],
     },
     {
       id: "packets",
       label: "Defense Packets",
       icon: FileCheck2,
       description: "Case packet previews & approval",
+      allowedRoles: ["ADMIN", "INVESTIGATOR", "REVIEWER"],
     },
     {
       id: "model",
@@ -100,14 +112,20 @@ export function Sidebar({
       badge: "Seed 42",
       badgeColor: "bg-surface-2 text-ink-300 border border-navy-500",
       description: "Held-out benchmark metrics",
+      allowedRoles: ["ADMIN", "INVESTIGATOR"],
     },
     {
       id: "settings",
       label: "Settings",
       icon: Settings,
       description: "Gateway & risk thresholds",
+      allowedRoles: ["ADMIN"],
     },
   ];
+
+  const visibleNavItems = allNavItems.filter((item) =>
+    item.allowedRoles.includes(userRole)
+  );
 
   return (
     <aside
@@ -162,7 +180,7 @@ export function Sidebar({
           </div>
         )}
 
-        {navItems.map((item) => {
+        {visibleNavItems.map((item) => {
           const isActive = currentTab === item.id;
           const Icon = item.icon;
 

@@ -6,9 +6,10 @@ import {
   AlertTriangle,
   FileText,
 } from "lucide-react";
-import type { Dispute, DisputeCaseState } from "../../types";
+import type { Dispute, DisputeCaseState, UserRole } from "../../types";
 import { formatINR } from "../../utils/format";
 import { Card } from "../ui";
+import { useAuth } from "../../context/AuthContext";
 
 interface DefensePacketsWorkspaceProps {
   disputes: Dispute[];
@@ -25,6 +26,9 @@ export function DefensePacketsWorkspace({
   onApprovePacket,
   onSubmitPacket,
 }: DefensePacketsWorkspaceProps) {
+  const { user } = useAuth();
+  const userRole: UserRole = user?.role || "INVESTIGATOR";
+
   const [selectedDisputeId, setSelectedDisputeId] = useState<string>(disputes[0]?.id || "");
   const activeDispute = disputes.find((d) => d.id === selectedDisputeId) || disputes[0];
   const activeState = caseStates[activeDispute?.id || ""];
@@ -239,25 +243,37 @@ export function DefensePacketsWorkspace({
                         onClick={() => onSelectDispute(activeDispute.id)}
                         className="rounded-xl border border-navy-600 bg-navy-800 px-4 py-2 text-xs font-semibold text-ink-200 hover:bg-navy-700"
                       >
-                        Open Investigation
+                        {userRole === "REVIEWER" ? "View Case Details" : "Open Investigation"}
                       </button>
 
                       {!isApproved && !isSubmitted && (
-                        <button
-                          onClick={() => onApprovePacket(activeDispute.id)}
-                          className="rounded-xl bg-signal-blue px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-signal-blue/90"
-                        >
-                          Approve Packet
-                        </button>
+                        userRole === "INVESTIGATOR" ? (
+                          <span className="rounded-xl border border-navy-700 bg-navy-800/80 px-3 py-2 text-[11px] font-mono text-ink-400" title="Only Reviewer or Admin can approve defense packets">
+                            Reviewer sign-off required
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => onApprovePacket(activeDispute.id)}
+                            className="rounded-xl bg-signal-blue px-4 py-2 text-xs font-bold text-white shadow-md hover:bg-signal-blue/90"
+                          >
+                            Approve Packet
+                          </button>
+                        )
                       )}
 
                       {isApproved && !isSubmitted && (
-                        <button
-                          onClick={() => onSubmitPacket(activeDispute.id)}
-                          className="rounded-xl bg-signal-green px-4 py-2 text-xs font-bold text-navy-950 shadow-md hover:bg-signal-green/90"
-                        >
-                          Submit to Network
-                        </button>
+                        userRole === "INVESTIGATOR" ? (
+                          <span className="rounded-xl border border-navy-700 bg-navy-800/80 px-3 py-2 text-[11px] font-mono text-ink-400" title="Only Reviewer or Admin can submit packets to the network">
+                            Reviewer sign-off required
+                          </span>
+                        ) : (
+                          <button
+                            onClick={() => onSubmitPacket(activeDispute.id)}
+                            className="rounded-xl bg-signal-green px-4 py-2 text-xs font-bold text-navy-950 shadow-md hover:bg-signal-green/90"
+                          >
+                            Submit to Network
+                          </button>
+                        )
                       )}
                     </div>
                   </div>

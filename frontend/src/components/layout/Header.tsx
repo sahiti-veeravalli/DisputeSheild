@@ -1,8 +1,18 @@
 import { useState, useRef, useEffect } from "react";
-import { Search, Bell, Sparkles, ExternalLink, User } from "lucide-react";
-import type { Dispute } from "../../types";
+import {
+  Search,
+  Bell,
+  Sparkles,
+  ExternalLink,
+  User,
+  LogOut,
+  ChevronDown,
+  CheckCircle2,
+} from "lucide-react";
+import type { Dispute, UserRole } from "../../types";
 import { formatINR } from "../../utils/format";
 import type { WorkspaceTab } from "./Sidebar";
+import { useAuth } from "../../context/AuthContext";
 
 interface HeaderProps {
   currentTab: WorkspaceTab;
@@ -47,6 +57,21 @@ const TAB_META: Record<WorkspaceTab, { title: string; subtitle: string }> = {
   },
 };
 
+const ROLE_BADGES: Record<UserRole, { label: string; style: string }> = {
+  ADMIN: {
+    label: "ADMIN",
+    style: "bg-signal-purpleDim text-signal-purple border-signal-purple/30",
+  },
+  INVESTIGATOR: {
+    label: "INVESTIGATOR",
+    style: "bg-cyan/15 text-cyan border-cyan/30",
+  },
+  REVIEWER: {
+    label: "REVIEWER",
+    style: "bg-signal-greenDim text-signal-green border-signal-green/30",
+  },
+};
+
 export function Header({
   currentTab,
   disputes,
@@ -54,11 +79,15 @@ export function Header({
   onNavigateTab,
   onBackToLanding,
 }: HeaderProps) {
+  const { user, logout, demoLogin } = useAuth();
   const [searchQuery, setSearchQuery] = useState("");
   const [searchOpen, setSearchOpen] = useState(false);
   const [notificationsOpen, setNotificationsOpen] = useState(false);
+  const [profileOpen, setProfileOpen] = useState(false);
+
   const searchRef = useRef<HTMLDivElement>(null);
   const notifRef = useRef<HTMLDivElement>(null);
+  const profileRef = useRef<HTMLDivElement>(null);
 
   const urgentDisputes = disputes.filter((d) => d.deadlineDays <= 2);
   const unanalyzedCount = disputes.filter((d) => d.status === "New").length;
@@ -80,6 +109,9 @@ export function Header({
       if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setNotificationsOpen(false);
       }
+      if (profileRef.current && !profileRef.current.contains(event.target as Node)) {
+        setProfileOpen(false);
+      }
     }
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
@@ -90,6 +122,9 @@ export function Header({
     subtitle: "Merchant dispute intelligence operations",
   };
 
+  const userRole: UserRole = user?.role || "INVESTIGATOR";
+  const roleBadge = ROLE_BADGES[userRole] || ROLE_BADGES.INVESTIGATOR;
+
   return (
     <header className="sticky top-0 z-30 flex h-16 w-full items-center justify-between border-b border-navy-700 bg-navy-900/80 px-6 backdrop-blur-xl">
       {/* Title & Breadcrumbs */}
@@ -97,6 +132,11 @@ export function Header({
         <div className="flex items-center gap-2">
           <span className="font-mono text-[10px] font-semibold text-signal-blue tracking-wider uppercase">
             Platform / {currentTab.replace("-", " ")}
+          </span>
+          <span
+            className={`rounded px-1.5 py-0.2 font-mono text-[9px] font-bold border ${roleBadge.style}`}
+          >
+            {roleBadge.label}
           </span>
         </div>
         <h1 className="font-display truncate text-base font-bold text-ink-100 sm:text-lg">
@@ -240,19 +280,95 @@ export function Header({
           <ExternalLink className="size-3 text-ink-500" />
         </button>
 
-        {/* Merchant User Avatar */}
-        <div className="flex items-center gap-2 pl-2 border-l border-navy-700">
-          <div className="flex size-8 items-center justify-center rounded-xl bg-signal-blueDim border border-signal-blue/30 text-signal-blue font-mono text-xs font-bold">
-            <User className="size-4" />
-          </div>
-          <div className="hidden xl:block text-left">
-            <div className="text-xs font-semibold text-ink-100 leading-tight">
-              Merchant Ops Admin
+        {/* Dynamic User Profile & Dropdown */}
+        <div ref={profileRef} className="relative pl-2 border-l border-navy-700">
+          <button
+            onClick={() => setProfileOpen(!profileOpen)}
+            className="flex items-center gap-2.5 rounded-xl p-1.5 text-left transition-colors hover:bg-navy-800"
+            aria-label="User Profile menu"
+          >
+            <div className="flex size-8 items-center justify-center rounded-xl bg-signal-blueDim border border-signal-blue/30 text-signal-blue font-mono text-xs font-bold shadow-[0_0_10px_rgba(76,125,255,0.2)]">
+              <User className="size-4" />
             </div>
-            <div className="font-mono text-[10px] text-ink-500 leading-tight">
-              Prime Mart India
+            <div className="hidden xl:block text-left">
+              <div className="text-xs font-semibold text-ink-100 leading-tight">
+                {user?.name || "Merchant Ops Admin"}
+              </div>
+              <div className="flex items-center gap-1.5 mt-0.5">
+                <span className="font-mono text-[9px] text-ink-500 leading-tight">
+                  Prime Mart India
+                </span>
+                <span
+                  className={`rounded px-1.5 py-0.2 font-mono text-[8px] font-bold border ${roleBadge.style}`}
+                >
+                  {roleBadge.label}
+                </span>
+              </div>
             </div>
-          </div>
+            <ChevronDown className="size-3.5 text-ink-500 hidden xl:block" />
+          </button>
+
+          {/* Profile Dropdown Menu */}
+          {profileOpen && (
+            <div className="absolute right-0 top-full mt-2 w-72 overflow-hidden rounded-2xl border border-navy-600 bg-navy-900/98 p-3 shadow-2xl backdrop-blur-xl animate-fadeIn">
+              <div className="border-b border-navy-700 pb-3 px-1">
+                <div className="text-xs font-bold text-ink-100">
+                  {user?.name || "Merchant Ops Admin"}
+                </div>
+                <div className="font-mono text-[11px] text-ink-400 truncate">
+                  {user?.email || "admin@disputeshield.ai"}
+                </div>
+                <div className="mt-2 flex items-center justify-between">
+                  <span className="font-mono text-[10px] text-ink-500 uppercase">
+                    Active RBAC Role
+                  </span>
+                  <span
+                    className={`rounded-full px-2 py-0.5 font-mono text-[9px] font-bold border ${roleBadge.style}`}
+                  >
+                    {roleBadge.label}
+                  </span>
+                </div>
+              </div>
+
+              {/* Demo Role Switcher */}
+              <div className="py-2.5 space-y-1">
+                <div className="px-1 text-[10px] font-semibold font-mono text-ink-500 uppercase tracking-wider">
+                  Quick Role Switcher
+                </div>
+                {(["INVESTIGATOR", "REVIEWER", "ADMIN"] as UserRole[]).map((r) => (
+                  <button
+                    key={r}
+                    onClick={() => {
+                      demoLogin(r);
+                      setProfileOpen(false);
+                    }}
+                    className={`flex w-full items-center justify-between rounded-lg px-2 py-1.5 text-xs transition-colors ${
+                      userRole === r
+                        ? "bg-navy-800 text-signal-blue font-semibold"
+                        : "text-ink-400 hover:bg-navy-800/60 hover:text-ink-200"
+                    }`}
+                  >
+                    <span>Switch to {r}</span>
+                    {userRole === r && <CheckCircle2 className="size-3.5 text-signal-blue" />}
+                  </button>
+                ))}
+              </div>
+
+              {/* Sign Out Button */}
+              <div className="border-t border-navy-700 pt-2">
+                <button
+                  onClick={() => {
+                    setProfileOpen(false);
+                    logout();
+                  }}
+                  className="flex w-full items-center gap-2 rounded-lg px-2 py-1.5 text-xs font-semibold text-signal-red hover:bg-signal-redDim/30 transition-colors"
+                >
+                  <LogOut className="size-3.5" />
+                  <span>Sign Out</span>
+                </button>
+              </div>
+            </div>
+          )}
         </div>
       </div>
     </header>

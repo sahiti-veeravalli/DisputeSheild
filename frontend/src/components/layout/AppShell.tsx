@@ -1,5 +1,5 @@
 import { useState } from "react";
-import type { Dispute, DisputeCaseState, DisputeStatus } from "../../types";
+import type { Dispute, DisputeCaseState, DisputeStatus, UserRole } from "../../types";
 import { Sidebar, type WorkspaceTab } from "./Sidebar";
 import { Header } from "./Header";
 import { CommandCenter } from "../workspaces/CommandCenter";
@@ -10,6 +10,7 @@ import { AnalyticsWorkspace } from "../workspaces/AnalyticsWorkspace";
 import { DefensePacketsWorkspace } from "../workspaces/DefensePacketsWorkspace";
 import { ModelIntelligenceWorkspace } from "../workspaces/ModelIntelligenceWorkspace";
 import { SettingsWorkspace } from "../workspaces/SettingsWorkspace";
+import { useAuth } from "../../context/AuthContext";
 
 interface AppShellProps {
   disputes: Dispute[];
@@ -38,8 +39,31 @@ export function AppShell({
   onBackToLanding,
   initialTab = "command-center",
 }: AppShellProps) {
-  const [currentTab, setCurrentTab] = useState<WorkspaceTab>(initialTab);
+  const { user } = useAuth();
+  const userRole: UserRole = user?.role || "INVESTIGATOR";
+
+  const [tabState, setTabState] = useState<WorkspaceTab>(initialTab);
   const [sidebarCollapsed, setSidebarCollapsed] = useState(false);
+
+  // Derive allowed tab according to user's RBAC role
+  const isTabAllowed = (tab: WorkspaceTab): boolean => {
+    if (userRole === "REVIEWER") {
+      return tab !== "investigation" && tab !== "model" && tab !== "settings";
+    }
+    if (userRole === "INVESTIGATOR") {
+      return tab !== "settings";
+    }
+    return true; // ADMIN has access to all
+  };
+
+  const currentTab = isTabAllowed(tabState) ? tabState : "command-center";
+  const setCurrentTab = (newTab: WorkspaceTab) => {
+    if (isTabAllowed(newTab)) {
+      setTabState(newTab);
+    } else {
+      setTabState("command-center");
+    }
+  };
 
   // Selected dispute object
   const activeDispute =
@@ -65,7 +89,11 @@ export function AppShell({
 
   function handleSelectDispute(id: string) {
     onSelectDispute(id);
-    setCurrentTab("investigation");
+    if (userRole === "REVIEWER") {
+      setCurrentTab("packets");
+    } else {
+      setCurrentTab("investigation");
+    }
   }
 
   return (
@@ -116,7 +144,7 @@ export function AppShell({
             />
           )}
 
-          {currentTab === "investigation" && activeDispute && (
+          {currentTab === "investigation" && activeDispute && (userRole === "ADMIN" || userRole === "INVESTIGATOR") && (
             <InvestigationWorkspace
               dispute={activeDispute}
               caseState={activeState}
@@ -155,9 +183,11 @@ export function AppShell({
             />
           )}
 
-          {currentTab === "model" && <ModelIntelligenceWorkspace />}
+          {currentTab === "model" && (userRole === "ADMIN" || userRole === "INVESTIGATOR") && (
+            <ModelIntelligenceWorkspace />
+          )}
 
-          {currentTab === "settings" && <SettingsWorkspace />}
+          {currentTab === "settings" && userRole === "ADMIN" && <SettingsWorkspace />}
         </main>
       </div>
     </div>

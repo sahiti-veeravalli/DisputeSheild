@@ -4,28 +4,42 @@ import type { Dispute, DisputeCaseState } from "./types";
 import { api } from "./api/client";
 import LandingPage from "./components/site/LandingPage";
 import { AppShell } from "./components/layout/AppShell";
+import { LoginPage } from "./components/auth/LoginPage";
 import type { WorkspaceTab } from "./components/layout/Sidebar";
 import { Card } from "./components/ui";
+import { AuthProvider, useAuth } from "./context/AuthContext";
 
-type AppView = "landing" | "app";
+type AppView = "landing" | "login" | "app";
 
-export default function App() {
+function DisputeShieldApp() {
+  const { isAuthenticated, isLoading: authLoading } = useAuth();
+
   const [disputes, setDisputes] = useState<Dispute[]>([]);
   const [caseStates, setCaseStates] = useState<Record<string, DisputeCaseState>>({});
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [activeWorkspaceTab, setActiveWorkspaceTab] = useState<WorkspaceTab>("command-center");
+
   const [view, setView] = useState<AppView>(() => {
     if (typeof window !== "undefined") {
       const hash = window.location.hash;
       if (hash === "#app" || hash === "#dashboard") return "app";
+      if (hash === "#login") return "login";
     }
     return "landing";
   });
 
+  // Fetch disputes whenever user becomes authenticated
   useEffect(() => {
+    if (!isAuthenticated) {
+      return;
+    }
+
     let active = true;
+    setLoading(true);
+    setError(null);
+
     api
       .listDisputes()
       .then((data) => {
@@ -55,12 +69,18 @@ export default function App() {
           setLoading(false);
         }
       });
+
     return () => {
       active = false;
     };
-  }, []);
+  }, [isAuthenticated, view]);
 
   async function handleRetry() {
+    if (!isAuthenticated) {
+      setView("login");
+      return;
+    }
+
     setLoading(true);
     setError(null);
     try {
@@ -199,18 +219,57 @@ export default function App() {
     }
   }
 
+  // Initial Auth Loading Spinner
+  if (authLoading) {
+    return (
+      <div className="flex min-h-screen flex-col items-center justify-center gap-4 bg-navy-950 px-6 font-body text-ink-100">
+        <div className="flex size-14 items-center justify-center rounded-2xl bg-signal-blueDim text-signal-blue border border-signal-blue/30 shadow-[0_0_25px_rgba(76,125,255,0.25)]">
+          <ShieldCheck className="size-8" />
+        </div>
+        <div className="flex items-center gap-2 font-mono text-xs text-ink-300">
+          <Loader2 className="size-4 animate-spin text-signal-blue" />
+          Verifying security credentials...
+        </div>
+      </div>
+    );
+  }
+
   // Public Landing Page view
   if (view === "landing") {
     return (
       <LandingPage
         onLaunchDemo={() => {
-          setActiveWorkspaceTab("command-center");
-          setView("app");
+          if (isAuthenticated) {
+            setActiveWorkspaceTab("command-center");
+            setView("app");
+          } else {
+            setView("login");
+          }
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
         onViewEvaluation={() => {
-          setActiveWorkspaceTab("model");
+          if (isAuthenticated) {
+            setActiveWorkspaceTab("model");
+            setView("app");
+          } else {
+            setView("login");
+          }
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+      />
+    );
+  }
+
+  // Login & Registration Page view
+  if (view === "login" || !isAuthenticated) {
+    return (
+      <LoginPage
+        onSuccess={() => {
           setView("app");
+          window.scrollTo({ top: 0, behavior: "smooth" });
+        }}
+        onBackToLanding={() => {
+          setView("landing");
           window.scrollTo({ top: 0, behavior: "smooth" });
         }}
       />
@@ -278,5 +337,13 @@ export default function App() {
         />
       )}
     </div>
+  );
+}
+
+export default function App() {
+  return (
+    <AuthProvider>
+      <DisputeShieldApp />
+    </AuthProvider>
   );
 }
