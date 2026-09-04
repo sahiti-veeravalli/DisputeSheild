@@ -108,6 +108,9 @@ public class SecurityConfig {
         patterns.add("http://127.0.0.1:*");
         patterns.add("http://localhost");
         patterns.add("http://127.0.0.1");
+        patterns.add("https://*.vercel.app");
+        patterns.add("https://*.netlify.app");
+        patterns.add("https://*.onrender.com");
 
         if (corsOrigins != null && !corsOrigins.isBlank()) {
             for (String o : corsOrigins.split(",")) {
