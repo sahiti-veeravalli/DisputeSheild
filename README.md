@@ -95,20 +95,75 @@ The system combines **deterministic evidence investigation** with **ML-assisted 
 ## Architecture
 
 ```text
-React + TypeScript
-        |
-        v
-Spring Boot API
-        |
-   +----+----+
-   |    |    |
-   v    v    v
-Rules  ML   Audit
-Engine Model Trail
-        |
-        v
- H2 / PostgreSQL
+React + TypeScript (Vite)
+        │
+        │ Authorization: Bearer <JWT>
+        ▼
+Spring Security 6 (Stateless Filter Chain)
+        │
+        ├── ADMIN (Full access + Gateway Settings + User Mgmt)
+        ├── INVESTIGATOR (7-Stage Rule Engine + ML Scoring + Packets)
+        └── REVIEWER (Evidence Audit + Packet Approval & Scheme Submission)
+        │
+        ▼
+Protected REST APIs (/api/disputes, /api/settings, /api/auth/me)
+        │
+   ┌────┴────┐
+   │         │
+   ▼         ▼
+Rules & ML  Audit Trail
+   │         │
+   └────┬────┘
+        │
+        ▼
+H2 (In-Memory) / PostgreSQL
 ```
+
+---
+
+## Authentication & Role-Based Access Control (RBAC)
+
+DisputeShield AI includes end-to-end production-grade authentication with stateless **JSON Web Tokens (JWT)** and fine-grained **Role-Based Access Control (RBAC)** enforced at both the Spring Security filter chain and endpoint method levels (`@PreAuthorize`).
+
+### Supported Roles & Permissions Matrix
+
+| Capability / API Endpoint | ADMIN | INVESTIGATOR | REVIEWER |
+|---|:---:|:---:|:---:|
+| **Dispute Queue** (`GET /api/disputes`, `GET /api/disputes/{id}`) | ✅ | ✅ | ✅ |
+| **Evidence Vault & Audit Trail** (`GET /api/disputes/{id}/audit`) | ✅ | ✅ | ✅ |
+| **Analytics & Risk Intelligence** | ✅ | ✅ | ✅ |
+| **AI Investigation & ML Sufficiency** (`POST /api/disputes/{id}/analyze`) | ✅ | ✅ | ❌ |
+| **Defense Packet Generation** (`POST /api/disputes/{id}/packet`) | ✅ | ✅ | ❌ |
+| **Defense Packet Approval** (`POST /api/disputes/{id}/approve`) | ✅ | ❌ | ✅ |
+| **Payment Scheme Submission** (`POST /api/disputes/{id}/submit`) | ✅ | ❌ | ✅ |
+| **Model Intelligence & Benchmark** (`GET /api/evaluation/report`) | ✅ | ✅ | ❌ |
+| **Platform Gateway & Security Settings** (`GET/PUT /api/settings`) | ✅ | ❌ | ❌ |
+
+### Pre-Seeded Demo Accounts (1-Click Login)
+
+For development, testing, and judge evaluation, three deterministic demo accounts are pre-seeded with BCrypt password hashing:
+
+| Role | Email | Password | Persona & Responsibilities |
+|---|---|---|---|
+| **Admin** | `admin@disputeshield.ai` | `Admin@1234` | **Sarah Connor** — Full system administration, payment gateways, risk thresholds |
+| **Investigator** | `investigator@disputeshield.ai` | `Investigator@1234` | **Alex Rivera** — Rule engine investigation, ML sufficiency analysis, packet drafts |
+| **Reviewer** | `reviewer@disputeshield.ai` | `Reviewer@1234` | **Elena Rostova** — Compliance verification, defense packet approval, scheme submission |
+
+### Security Endpoints
+
+- `POST /api/auth/register` — Creates a new account with BCrypt password encryption (defaults to `INVESTIGATOR` or selected role).
+- `POST /api/auth/login` — Authenticates credentials and returns a signed HMAC-SHA256 JWT access token.
+- `GET /api/auth/me` — Returns the profile and granted authorities for the active JWT session.
+- `GET /api/evaluation/report` — Public endpoint for held-out benchmark validation (Seed 42).
+
+### Environment Variables
+
+| Variable | Default (Local / Dev) | Description |
+|---|---|---|
+| `JWT_SECRET` | *(Safe default development signature)* | Secret key for signing and validating HMAC-SHA256 JWTs |
+| `JWT_EXPIRATION_MS` | `86400000` (24 Hours) | JWT token lifespan in milliseconds |
+| `DISPUTESHIELD_CORS_ORIGINS` | `http://localhost:5173,...` | Allowed CORS origins for frontend client access |
+| `SPRING_PROFILES_ACTIVE` | `default` (H2) / `docker` (Postgres) | Active Spring profile |
 
 ---
 

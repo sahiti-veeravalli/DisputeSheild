@@ -31,6 +31,8 @@ services:
       SPRING_DATASOURCE_PASSWORD: disputeshield_secret
       DISPUTESHIELD_API_KEY: disputeshield-demo-key-2026
       DISPUTESHIELD_CORS_ORIGINS: http://localhost,http://localhost:80,http://localhost:3000,http://localhost:5173
+      JWT_SECRET: ${JWT_SECRET:-disputeshield-docker-production-secret-signature-key-2026}
+      JWT_EXPIRATION_MS: ${JWT_EXPIRATION_MS:-86400000}
     ports:
       - "8080:8080"
     depends_on:
