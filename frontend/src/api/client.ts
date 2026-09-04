@@ -4,10 +4,41 @@ import type {
   AuditEntry,
   EvaluationReport,
   SubmissionResponse,
+  AuthResponse,
+  LoginPayload,
+  RegisterPayload,
+  AuthUser,
+  PlatformSettings,
 } from "../types";
 
 const BASE_URL = import.meta.env.VITE_API_BASE_URL ?? "http://localhost:8080";
-const API_KEY = import.meta.env.VITE_API_KEY ?? "disputeshield-demo-key-2026";
+const TOKEN_KEY = "disputeshield_jwt_token";
+
+let onUnauthorizedCallback: (() => void) | null = null;
+
+export function setUnauthorizedHandler(handler: (() => void) | null) {
+  onUnauthorizedCallback = handler;
+}
+
+export function getStoredToken(): string | null {
+  try {
+    return localStorage.getItem(TOKEN_KEY);
+  } catch {
+    return null;
+  }
+}
+
+export function setStoredToken(token: string | null) {
+  try {
+    if (token) {
+      localStorage.setItem(TOKEN_KEY, token);
+    } else {
+      localStorage.removeItem(TOKEN_KEY);
+    }
+  } catch {
+    // ignore local storage errors
+  }
+}
 
 async function request<T>(
   endpoint: string,
@@ -18,14 +49,24 @@ async function request<T>(
   if (!headers.has("Content-Type") && options.method && options.method !== "GET") {
     headers.set("Content-Type", "application/json");
   }
+
   if (!isPublic) {
-    headers.set("X-API-Key", API_KEY);
+    const token = getStoredToken();
+    if (token) {
+      headers.set("Authorization", `Bearer ${token}`);
+    }
   }
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     ...options,
     headers,
   });
+
+  if (response.status === 401 && !isPublic) {
+    if (onUnauthorizedCallback) {
+      onUnauthorizedCallback();
+    }
+  }
 
   if (!response.ok) {
     let errorMsg = `HTTP ${response.status} ${response.statusText}`;
@@ -48,7 +89,25 @@ async function request<T>(
 }
 
 export const api = {
-  listDisputes: (): Promise<Dispute[]> => request<Dispute[]>("/api/disputes"),
+  // Authentication & Profile APIs
+  login: (payload: LoginPayload): Promise<AuthResponse> =>
+    request<AuthResponse>("/api/auth/login", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, true),
+
+  register: (payload: RegisterPayload): Promise<AuthResponse> =>
+    request<AuthResponse>("/api/auth/register", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    }, true),
+
+  getMe: (): Promise<AuthUser> =>
+    request<AuthUser>("/api/auth/me"),
+
+  // Disputes & Investigation Lifecycle APIs
+  listDisputes: (): Promise<Dispute[]> =>
+    request<Dispute[]>("/api/disputes"),
 
   getDispute: (id: string): Promise<Dispute> =>
     request<Dispute>(`/api/disputes/${id}`),
@@ -73,6 +132,17 @@ export const api = {
   getAudit: (id: string): Promise<AuditEntry[]> =>
     request<AuditEntry[]>(`/api/disputes/${id}/audit`),
 
+  // Evaluation Metrics (Public for Judges)
   getEvaluationReport: (): Promise<EvaluationReport> =>
     request<EvaluationReport>("/api/evaluation/report", {}, true),
+
+  // Platform Settings (Admin Only)
+  getSettings: (): Promise<PlatformSettings> =>
+    request<PlatformSettings>("/api/settings"),
+
+  updateSettings: (settings: PlatformSettings): Promise<PlatformSettings> =>
+    request<PlatformSettings>("/api/settings", {
+      method: "PUT",
+      body: JSON.stringify(settings),
+    }),
 };

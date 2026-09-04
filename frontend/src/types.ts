@@ -149,3 +149,38 @@ export interface EvaluationReport {
   methodology: string;
   guardrailNote: string;
 }
+
+export type UserRole = "ADMIN" | "INVESTIGATOR" | "REVIEWER";
+
+export interface AuthUser {
+  id: number;
+  name: string;
+  email: string;
+  role: UserRole;
+  createdAt?: string;
+}
+
+export interface AuthResponse {
+  token: string;
+  user: AuthUser;
+}
+
+export interface LoginPayload {
+  email: string;
+  password: string;
+}
+
+export interface RegisterPayload {
+  name: string;
+  email: string;
+  password: string;
+  role?: UserRole;
+}
+
+export interface PlatformSettings {
+  activePaymentGateway: string;
+  webhookEndpoint: string;
+  autoInvestigate: boolean;
+  urgentDeadlineAlerts: boolean;
+  highValueThresholdInInr: number;
+}
