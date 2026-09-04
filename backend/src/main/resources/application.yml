@@ -52,6 +52,30 @@ spring:
 
 ---
 # ---------------------------------------------------------------------------
+# prod / cloud deployment profile — embedded H2 by default, PostgreSQL if SPRING_DATASOURCE_URL is supplied
+# ---------------------------------------------------------------------------
+spring:
+  config:
+    activate:
+      on-profile: prod
+
+  datasource:
+    url: ${SPRING_DATASOURCE_URL:jdbc:h2:mem:disputeshield;DB_CLOSE_DELAY=-1;DB_CLOSE_ON_EXIT=FALSE}
+    username: ${SPRING_DATASOURCE_USERNAME:sa}
+    password: ${SPRING_DATASOURCE_PASSWORD:}
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+    show-sql: false
+    open-in-view: false
+
+  h2:
+    console:
+      enabled: false
+
+---
+# ---------------------------------------------------------------------------
 # docker profile — Postgres, activated via SPRING_PROFILES_ACTIVE=docker
 # ---------------------------------------------------------------------------
 spring:
