@@ -11,6 +11,9 @@ server:
 disputeshield:
   cors-origins: ${DISPUTESHIELD_CORS_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:3000,http://localhost:8080,http://localhost}
   api-key: ${DISPUTESHIELD_API_KEY:disputeshield-demo-key-2026}
+  jwt:
+    secret: ${JWT_SECRET:disputeshield-production-grade-jwt-secret-key-2026-safe-default-signature}
+    expiration-ms: ${JWT_EXPIRATION_MS:86400000}
 
 springdoc:
   swagger-ui:
