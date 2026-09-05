@@ -13,39 +13,28 @@
 [![TypeScript](https://img.shields.io/badge/TypeScript-Ready-3178C6?style=flat-square&logo=typescript&logoColor=white)](https://www.typescriptlang.org/)
 [![Docker](https://img.shields.io/badge/Docker-Ready-2496ED?style=flat-square&logo=docker&logoColor=white)](https://www.docker.com/)
 
-<br/>
 
-**From dispute alert to evidence-ready defense — in seconds.**
+**From dispute alert to evidence-ready defense in seconds.**
+<br>
+[**Live Demo**](https://dispute-sheild.vercel.app/)
+<br>
+
+<img width="1512" height="872" alt="image" src="https://github.com/user-attachments/assets/e75f359f-6531-4abe-8694-c54080bf8446" />
 
 </div>
 
----
 
-> **DisputeShield AI helps merchants investigate payment chargebacks, identify the strongest available evidence, detect critical gaps, and prepare structured defense packets for human review.**
-
-## The Problem
-
-When a merchant receives a chargeback, they often have limited time to investigate the dispute, find the right evidence, and prepare a response. Evidence can be scattered across transactions, orders, delivery records, customer support conversations, and fraud signals.
-
-Missing the right evidence can mean losing money — even when the merchant has a valid defense.
-
-## The Solution
-
-**DisputeShield AI** automates the first stage of chargeback defense.
-
-It takes a dispute and:
-
-1. Investigates the case using deterministic evidence rules
-2. Finds and ranks relevant merchant evidence
-3. Detects missing critical evidence
-4. Assesses defense readiness
-5. Uses ML-assisted probability scoring for evidence sufficiency
-6. Builds a structured, review-ready defense packet
-7. Keeps a complete audit trail
-
-**The merchant stays in control. Nothing is submitted without human approval.**
+<br/>
+DisputeShield AI helps merchants investigate payment chargebacks, identify the strongest available evidence, detect critical gaps, and prepare structured defense packets for human review.
 
 ---
+
+
+## Product Preview
+
+### Investigation Dashboard
+
+<img width="1542" height="1021" alt="image" src="https://github.com/user-attachments/assets/248e6c6e-8a0e-43bb-92f3-ce68a7a045bb" />
 
 ## How It Works
 
@@ -74,7 +63,74 @@ Complete Audit Trail
 The system combines **deterministic evidence investigation** with **ML-assisted decision support**, while keeping the final response under human control.
 
 ---
+## 1-Click Demo Access
 
+The demo provides three pre-seeded roles, each showing a different part of the chargeback defense workflow.
+**No account is required** for demo access **choose a pre-seeded role** and explore the platform instantly.
+<div align="center">
+
+<img src="https://github.com/user-attachments/assets/2b97cf0c-c8d3-4130-a889-56ccf0bdea3f" width="49%">
+<img src="https://github.com/user-attachments/assets/7f44769c-8848-40da-a22b-70952c4a224e" width="49%">
+
+</div>
+
+<div align="center">
+
+<table>
+<tr>
+<th> Investigator</th>
+<th> Reviewer</th>
+<th> Admin</th>
+</tr>
+<br>
+<tr>
+<td width="33%">
+<img src="https://github.com/user-attachments/assets/8e70a018-c115-4bea-9d13-a4ed89032870" width="100%">
+Runs the 7-stage investigation, analyzes evidence, applies ML-assisted scoring, and prepares defense packets.
+</td>
+
+<td width="33%">
+<img src="https://github.com/user-attachments/assets/8a4245c8-a96d-4d03-856d-10f2f60ea2e8" width="100%">
+Audits evidence, reviews & approves defense packets, and approves or submits the final response.
+</td>
+
+<td width="33%">
+<img src="https://github.com/user-attachments/assets/901b6be7-9d1f-4e51-a65e-8a4b36cef9a4" width="100%">
+Manages disputes, investigation workflows, defense packets, users, and security settings.
+</td>
+</tr>
+
+</table>
+
+</div>
+
+**Human-controlled:** AI provides investigation and decision support, while final defense submission remains under merchant approval.
+
+---
+## The Problem
+
+When a merchant receives a chargeback, they often have limited time to investigate the dispute, find the right evidence, and prepare a response. Evidence can be scattered across transactions, orders, delivery records, customer support conversations, and fraud signals.
+
+Missing the right evidence can mean losing money even when the merchant has a valid defense.
+
+---
+## The Solution
+
+**DisputeShield AI** automates the first stage of chargeback defense.
+
+It takes a dispute and:
+
+1. Investigates the case using deterministic evidence rules
+2. Finds and ranks relevant merchant evidence
+3. Detects missing critical evidence
+4. Assesses defense readiness
+5. Uses ML-assisted probability scoring for evidence sufficiency
+6. Builds a structured, review-ready defense packet
+7. Keeps a complete audit trail
+
+**The merchant stays in control. Nothing is submitted without human approval.**
+
+---
 ## What DisputeShield Does
 
 | Capability | What Happens |
@@ -91,85 +147,71 @@ The system combines **deterministic evidence investigation** with **ML-assisted 
 `Product Not Received` · `Fraudulent Transaction` · `Duplicate Charge` · `Product Not as Described`
 
 ---
-
 ## Architecture
 
 ```text
-React + TypeScript (Vite)
+React + TypeScript + Vite
         │
-        │ Authorization: Bearer <JWT>
+        │ REST API
         ▼
-Spring Security 6 (Stateless Filter Chain)
+Spring Boot Backend
         │
-        ├── ADMIN (Full access + Gateway Settings + User Mgmt)
-        ├── INVESTIGATOR (7-Stage Rule Engine + ML Scoring + Packets)
-        └── REVIEWER (Evidence Audit + Packet Approval & Scheme Submission)
+        ├── Authentication & Security
+        │     ├── JWT Authentication
+        │     └── Role-Based Access Control
+        │
+        ├── Dispute Service
+        │     │
+        │     ├── Dispute Management
+        │     ├── Evidence Analysis
+        │     ├── Defense Packet Generation
+        │     └── Audit Trail
+        │
+        ├── Rule Engine
+        │     ├── Dispute Context
+        │     ├── Dispute Features
+        │     └── Evidence Rules
+        │
+        ├── ML Evaluation
+        │     ├── Synthetic Dataset Generation
+        │     └── Logistic Regression
+        │
+        ├── REST Controllers
+        │     ├── Authentication
+        │     ├── Disputes
+        │     ├── Evaluation
+        │     └── Settings
         │
         ▼
-Protected REST APIs (/api/disputes, /api/settings, /api/auth/me)
-        │
-   ┌────┴────┐
-   │         │
-   ▼         ▼
-Rules & ML  Audit Trail
-   │         │
-   └────┬────┘
+JPA / Hibernate
         │
         ▼
-H2 (In-Memory) / PostgreSQL
+H2 / PostgreSQL
 ```
-
----
 
 ## Authentication & Role-Based Access Control (RBAC)
 
-DisputeShield AI includes end-to-end production-grade authentication with stateless **JSON Web Tokens (JWT)** and fine-grained **Role-Based Access Control (RBAC)** enforced at both the Spring Security filter chain and endpoint method levels (`@PreAuthorize`).
+DisputeShield AI uses **JWT-based authentication** with Spring Security and role-based access control.
 
-### Supported Roles & Permissions Matrix
+### Supported Roles & Permissions
 
-| Capability / API Endpoint | ADMIN | INVESTIGATOR | REVIEWER |
+| Capability | ADMIN | INVESTIGATOR | REVIEWER |
 |---|:---:|:---:|:---:|
-| **Dispute Queue** (`GET /api/disputes`, `GET /api/disputes/{id}`) | ✅ | ✅ | ✅ |
-| **Evidence Vault & Audit Trail** (`GET /api/disputes/{id}/audit`) | ✅ | ✅ | ✅ |
-| **Analytics & Risk Intelligence** | ✅ | ✅ | ✅ |
-| **AI Investigation & ML Sufficiency** (`POST /api/disputes/{id}/analyze`) | ✅ | ✅ | ❌ |
-| **Defense Packet Generation** (`POST /api/disputes/{id}/packet`) | ✅ | ✅ | ❌ |
-| **Defense Packet Approval** (`POST /api/disputes/{id}/approve`) | ✅ | ❌ | ✅ |
-| **Payment Scheme Submission** (`POST /api/disputes/{id}/submit`) | ✅ | ❌ | ✅ |
-| **Model Intelligence & Benchmark** (`GET /api/evaluation/report`) | ✅ | ✅ | ❌ |
-| **Platform Gateway & Security Settings** (`GET/PUT /api/settings`) | ✅ | ❌ | ❌ |
-
-### Pre-Seeded Demo Accounts (1-Click Login)
-
-For development, testing, and judge evaluation, three deterministic demo accounts are pre-seeded with BCrypt password hashing:
-
-| Role | Email | Password | Persona & Responsibilities |
-|---|---|---|---|
-| **Admin** | `admin@disputeshield.ai` | `Admin@1234` | **Sarah Connor** — Full system administration, payment gateways, risk thresholds |
-| **Investigator** | `investigator@disputeshield.ai` | `Investigator@1234` | **Alex Rivera** — Rule engine investigation, ML sufficiency analysis, packet drafts |
-| **Reviewer** | `reviewer@disputeshield.ai` | `Reviewer@1234` | **Elena Rostova** — Compliance verification, defense packet approval, scheme submission |
-
-### Security Endpoints
-
-- `POST /api/auth/register` — Creates a new account with BCrypt password encryption (defaults to `INVESTIGATOR` or selected role).
-- `POST /api/auth/login` — Authenticates credentials and returns a signed HMAC-SHA256 JWT access token.
-- `GET /api/auth/me` — Returns the profile and granted authorities for the active JWT session.
-- `GET /api/evaluation/report` — Public endpoint for held-out benchmark validation (Seed 42).
-
-### Environment Variables
-
-| Variable | Default (Local / Dev) | Description |
-|---|---|---|
-| `JWT_SECRET` | *(Safe default development signature)* | Secret key for signing and validating HMAC-SHA256 JWTs |
-| `JWT_EXPIRATION_MS` | `86400000` (24 Hours) | JWT token lifespan in milliseconds |
-| `DISPUTESHIELD_CORS_ORIGINS` | `http://localhost:5173,...` | Allowed CORS origins for frontend client access |
-| `SPRING_PROFILES_ACTIVE` | `default` (H2) / `docker` (Postgres) | Active Spring profile |
+| **View Disputes** | ✅ | ✅ | ✅ |
+| **View Analysis** | ✅ | ✅ | ❌ |
+| **View Audit Trail** | ✅ | ✅ | ✅ |
+| **Run Investigation** | ✅ | ✅ | ❌ |
+| **Generate Defense Packet** | ✅ | ✅ | ❌ |
+| **Approve Defense Packet** | ✅ | ❌ | ✅ |
+| **Submit Response** | ✅ | ❌ | ✅ |
+| **Evaluation / ML** | ✅ | ✅ | ❌ |
+| **Platform Settings** | ✅ | ❌ | ❌ |
 
 ---
 
 ## ML Evaluation
 
-DisputeShield includes a reproducible synthetic benchmark using a **logistic regression model**.
+DisputeShield AI includes a reproducible synthetic benchmark for evaluating its ML-assisted evidence sufficiency scoring.
 
 | Metric | Result |
 |---|---:|
@@ -178,97 +220,82 @@ DisputeShield includes a reproducible synthetic benchmark using a **logistic reg
 | **F1 Score** | **0.667** |
 | **False-Positive Cost** | **₹85,567** |
 
-**200 synthetic disputes · 160 training · 40 held-out test cases · Seed 42**
+**Dataset:** 200 synthetic disputes · 160 training cases · 40 held-out test cases · Seed 42
 
-The model is evaluated **exclusively on held-out test data** and is used as **decision support**, not as an autonomous final decision-maker.
+The ML model is used as **decision support**, not as an autonomous final decision-maker.
 
 ---
-
 ## Tech Stack
 
-**Frontend**  
-React 19 · TypeScript · Vite · Tailwind CSS · Lucide
+### Frontend
 
-**Backend**  
-Java 21 · Spring Boot · Spring Data JPA · Hibernate
+![React](https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=white)
+![TypeScript](https://img.shields.io/badge/TypeScript-3178C6?style=for-the-badge&logo=typescript&logoColor=white)
+![Vite](https://img.shields.io/badge/Vite-646CFF?style=for-the-badge&logo=vite&logoColor=white)
+![Tailwind CSS](https://img.shields.io/badge/Tailwind_CSS-06B6D4?style=for-the-badge&logo=tailwindcss&logoColor=white)
+![Lucide](https://img.shields.io/badge/Lucide-Icons-F56565?style=for-the-badge)
 
-**Data**  
-H2 · PostgreSQL
+### Backend
 
-**Infrastructure**  
-Docker · Docker Compose · GitHub Actions · Swagger / OpenAPI
+![Java](https://img.shields.io/badge/Java-21-ED8B00?style=for-the-badge&logo=openjdk&logoColor=white)
+![Spring Boot](https://img.shields.io/badge/Spring_Boot-3.3.4-6DB33F?style=for-the-badge&logo=springboot&logoColor=white)
+![Spring Data JPA](https://img.shields.io/badge/Spring_Data_JPA-6DB33F?style=for-the-badge&logo=spring&logoColor=white)
+![Hibernate](https://img.shields.io/badge/Hibernate-59666C?style=for-the-badge&logo=hibernate&logoColor=white)
+
+### Database
+
+![H2](https://img.shields.io/badge/H2-1E90FF?style=for-the-badge&logo=h2&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
+
+### Security & API
+
+![Spring Security](https://img.shields.io/badge/Spring_Security-6DB33F?style=for-the-badge&logo=springsecurity&logoColor=white)
+![JWT](https://img.shields.io/badge/JWT-000000?style=for-the-badge&logo=jsonwebtokens&logoColor=white)
+![OpenAPI](https://img.shields.io/badge/OpenAPI-6BA539?style=for-the-badge&logo=openapiinitiative&logoColor=white)
+
+### Infrastructure & CI
+
+![Docker](https://img.shields.io/badge/Docker-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![Docker Compose](https://img.shields.io/badge/Docker_Compose-2496ED?style=for-the-badge&logo=docker&logoColor=white)
+![GitHub Actions](https://img.shields.io/badge/GitHub_Actions-2088FF?style=for-the-badge&logo=githubactions&logoColor=white)
 
 ---
-
 ## Quick Start
 
 ### Run Locally
 
+### Backend
 ```bash
-# Backend
 cd backend
 mvn spring-boot:run
 ```
 
 In another terminal:
 
+### Frontend
 ```bash
-# Frontend
 cd frontend
 npm install
 npm run dev
 ```
 
-### Run Everything with Docker
+### Run with Docker
 
 ```bash
 docker compose up --build
 ```
 
-The local development setup uses an in-memory **H2** database, while the Docker deployment uses **PostgreSQL**.
+The local setup uses **H2**, while the Docker setup uses **PostgreSQL**.
 
 ---
 
-## Verification
-
-### Backend
-
-```bash
-cd backend
-mvn -B verify
-```
-
-### Frontend
-
-```bash
-cd frontend
-npm run build
-npm run lint
-```
-
----
 
 ## Built for Defense
 
-**Explainable** — Evidence decisions can be understood
-
-**Human-controlled** — Nothing is submitted without approval
-
-**Auditable** — The dispute lifecycle is recorded
-
-**Defense-only** — Built exclusively for legitimate merchant dispute response
-
----
-
-<div align="center">
-
-## DisputeShield AI
-
-### Every chargeback deserves a defense.
-
-*Built for intelligent, explainable merchant dispute operations.*
-
-</div>
+- **Explainable** — Evidence decisions can be understood.
+- **Human-controlled** — Final defense actions require human approval.
+- **Auditable** — The dispute lifecycle is recorded.
+- **Defense-focused** — Built for legitimate merchant dispute operations.
 
 ---
 
@@ -276,4 +303,4 @@ npm run lint
 
 MIT License.
 
-**Synthetic demonstration data only. No real payment or customer records are used.**
+> **Synthetic demonstration data only. No real payment or customer records are used.**
